@@ -1,10 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../core/widgets/not_built.dart';
 import '../../core/widgets/photo_placeholder.dart';
 
 class TagReviewScreen extends StatelessWidget {
-  const TagReviewScreen({super.key});
+  const TagReviewScreen({super.key, this.photoPath});
+
+  /// The saved clothing photo, or null when no photo is available yet.
+  final String? photoPath;
 
   static const _sampleTags = {
     'Category': 'Top',
@@ -14,6 +19,21 @@ class TagReviewScreen extends StatelessWidget {
     'Season': 'All year',
   };
 
+  Widget _buildPhoto() {
+    final path = photoPath;
+    if (path == null) return const PhotoPlaceholder(height: 160);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.file(
+        File(path),
+        height: 240,
+        fit: BoxFit.contain,
+        semanticLabel: 'Selected clothing photo',
+        errorBuilder: (_, _, _) => const PhotoPlaceholder(height: 160),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,7 +41,7 @@ class TagReviewScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const PhotoPlaceholder(height: 160),
+          _buildPhoto(),
           const SizedBox(height: 16),
           for (final tag in _sampleTags.entries)
             Padding(
