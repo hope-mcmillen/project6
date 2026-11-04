@@ -1,17 +1,31 @@
-# project6
+# FitCheck AI
 
-A new Flutter project.
+Outfit suggestions from the clothes you already own.
 
-## Getting Started
+**This is a placeholder template.** Screens and navigation exist, but the
+features do not. Controls that are not built show a "Not built yet" message
+naming the requirement, and all clothing, weather, and outfit data is sample
+text.
 
-This project is a starting point for a Flutter application.
+## Run it
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+flutter pub get
+flutter run
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+flutter analyze
+flutter test
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Who owns what
+
+Stay in your own folders to keep merge conflicts low.
+
+| Member | Segment | Folders |
+| --- | --- | --- |
+| Member 1: Kameron | Closet | `lib/features/closet/`, `test/features/closet/` |
+| Member 2: Hope | Outfits | `lib/features/outfits/`, `test/features/outfits/` |
+| Member 3: Marcus | Database and AI | `lib/core/data/`, `lib/core/ai/`, `lib/core/weather/`, `firestore.rules` |
+| Member 4: Keith | Platform and Fit Check | `lib/app/`, `lib/core/widgets/`, `lib/core/images/`, `lib/features/fit_check/`, `lib/features/settings/`, `.github/`, `pubspec.yaml`, `android/`, `ios/` |

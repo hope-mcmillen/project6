@@ -1,30 +1,82 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+import 'package:fitcheck_ai/app/app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:project6/main.dart';
+Future<void> openApp(WidgetTester tester) async {
+  tester.view.physicalSize = const Size(360, 640);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  await tester.pumpWidget(const FitCheckApp());
+  await tester.tap(find.text('I am 18 or older, continue'));
+  await tester.pumpAndSettle();
+}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('welcome screen leads to the closet', (tester) async {
+    await openApp(tester);
+    expect(find.text('My Closet'), findsOneWidget);
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  testWidgets('every tab opens', (tester) async {
+    await openApp(tester);
+    await tester.tap(find.text('Outfits'));
+    await tester.pumpAndSettle();
+    expect(find.text('Get an Outfit'), findsOneWidget);
+    await tester.tap(find.text('Lookbook').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Class outfit'), findsOneWidget);
+    await tester.tap(find.text('Fit Check').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Check my fit'), findsOneWidget);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  testWidgets('add item flow reaches tag review and returns', (tester) async {
+    await openApp(tester);
+    await tester.tap(find.text('Add item'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Take photo'));
+    await tester.pumpAndSettle();
+    expect(find.text('Review Tags'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Save to closet'),
+      100,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Save to closet'));
+    await tester.pumpAndSettle();
+    expect(find.text('My Closet'), findsOneWidget);
+    expect(find.text('Not built yet: FR-3 save item'), findsOneWidget);
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  testWidgets('outfit flow reaches results', (tester) async {
+    await openApp(tester);
+    await tester.tap(find.text('Outfits'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Get outfits'));
+    await tester.pumpAndSettle();
+    expect(find.text('Your Outfits'), findsOneWidget);
+  });
+
+  testWidgets('fit check flow reaches results', (tester) async {
+    await openApp(tester);
+    await tester.tap(find.text('Fit Check').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Check my fit'));
+    await tester.pumpAndSettle();
+    expect(find.text('Fit Check Result'), findsOneWidget);
+  });
+
+  testWidgets('settings opens its sub-screens', (tester) async {
+    await openApp(tester);
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Style profile'));
+    await tester.pumpAndSettle();
+    expect(find.text('Style Profile'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Privacy'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Placeholder privacy'), findsOneWidget);
   });
 }
