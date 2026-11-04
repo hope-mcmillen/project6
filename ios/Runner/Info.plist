@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>FitCheck AI uses the camera to photograph clothing for your closet.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>FitCheck AI uses your photo library to add clothing to your closet.</string>
 </dict>
 </plist>

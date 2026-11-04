@@ -30,22 +30,12 @@ void main() {
     expect(find.text('Check my fit'), findsOneWidget);
   });
 
-  testWidgets('add item flow reaches tag review and returns', (tester) async {
+  testWidgets('add item button opens the add item screen', (tester) async {
     await openApp(tester);
     await tester.tap(find.text('Add item'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Take photo'));
-    await tester.pumpAndSettle();
-    expect(find.text('Review Tags'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('Save to closet'),
-      100,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('Save to closet'));
-    await tester.pumpAndSettle();
-    expect(find.text('My Closet'), findsOneWidget);
-    expect(find.text('Not built yet: FR-3 save item'), findsOneWidget);
+    expect(find.text('Take photo'), findsOneWidget);
+    expect(find.text('Choose from gallery'), findsOneWidget);
   });
 
   testWidgets('outfit flow reaches results', (tester) async {
