@@ -35,7 +35,7 @@ Stay in your own folders to keep merge conflicts low.
 Member 3's shared models, repository interfaces, fakes, Firestore implementations,
 and Firebase AI services are ready for screen integration. The Android app initializes the real Firebase project at startup. Firestore,
 anonymous sign-in and owner-only rules are configured, and live database tests
-pass. Gemini activation, App Check authorization and feature-screen integration
+pass. Live AI verification, App Check authorization and feature-screen integration
 are still pending. See [Firebase status](docs/FIREBASE_STATUS.md). See the [backend handoff](docs/BACKEND_HANDOFF.md) for the API and
 setup steps, and [Marcus's daily plan](docs/MARCUS_DAILY_PLAN.md) for work through
 November 17. Track team work on [Trello](https://trello.com/b/VkUZV9ex/4335-project6).

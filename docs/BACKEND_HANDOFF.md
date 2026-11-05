@@ -83,8 +83,9 @@ first user's sample record. See FIREBASE_STATUS.md for the remaining checks.
 
 - The Firebase project, Android app, Anonymous provider, Firestore and owner-only
   rules are configured. Real storage/reload and cross-user rule checks pass.
-- AI Logic is waiting on the account owner's separate Gemini API terms and
-  **Enable APIs** action. It now automatically enforces App Check during setup.
+- The account owner enabled the Gemini Developer API in AI Logic. App Check
+  Basic enforcement is active. Emulator authorization is awaiting explicit
+  owner approval.
   `BackendServices.connect` initializes the debug provider in debug builds and
   Play Integrity in release builds. An authorized debug token and a configured
   release provider are still needed before verified AI calls can succeed.
@@ -124,7 +125,7 @@ sign-in reuse, scoped persistence round trips, owner-only document access using
 the fake rules evaluator, image preparation, malformed JSON/retries/timeouts,
 and invalid outfit IDs. Existing screen tests also remain in the suite.
 
-Still required: Gemini provider agreement/activation, App Check authorization,
+Still required: App Check authorization,
 real AI tagging and outfit smoke checks, teammate access and screen integration,
 and the Android full feature flow. See FIREBASE_STATUS.md for offline test results. M3-07–11 are scheduled in MARCUS_DAILY_PLAN.md.
 No P0 card should be marked Done solely because its code has been written.

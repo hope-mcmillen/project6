@@ -53,16 +53,20 @@ fixture check; the corrected two-launch check above passes. These are emulator
 checks, not a claim of a completed real-phone feature flow. Disposable sample
 metadata/anonymous accounts from rehearsals may remain in this development project.
 
-## Still pending
+## AI provider enabled; access approval pending
 
-- The account owner must review the **separate Gemini API Additional Terms** and
-  click **Enable APIs** in the open Firebase AI Logic setup panel. These terms
-  are distinct from the Firebase project terms already accepted.
+The account owner accepted the separate Gemini agreement and enabled the APIs.
+Firebase AI Logic is now active with Basic App Check enforcement.
+
+Still pending:
 - AI Logic setup now enforces App Check automatically. Authorize the team's
   development builds and configure Play Integrity before expecting verified AI
   calls. Debug tokens grant access and need explicit owner approval; keep them
   out of GitHub and public recordings. Do not disable App Check enforcement.
 - Live clothing tagging, live outfit generation, and latency verification.
+  `integration_test/firebase_ai_test.dart` is prepared with a visually reviewed,
+  public-domain clothing-only fixture. Do not run it until App Check access is
+  authorized. Keep `--no-uninstall` on emulator runs to preserve that credential.
 - Kameron, Hope and Keith's Google-account emails, plus approval of the actual
   recipient/role list, before granting project access.
 - Teammates' feature integration and the full flow on a real Android phone.
