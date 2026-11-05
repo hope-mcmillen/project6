@@ -71,6 +71,9 @@ flutter:
   assets:
     - assets/backend_test/black_tshirt.jpg
 
+  assets:
+    - assets/sample_closet/
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
