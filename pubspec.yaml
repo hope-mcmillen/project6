@@ -36,6 +36,12 @@ dependencies:
   cupertino_icons: ^1.0.8
   image_picker: ^1.2.4
   path_provider: ^2.1.6
+  firebase_core: ^5.1.0
+  cloud_firestore: ^7.1.0
+  firebase_auth: ^7.0.1
+  firebase_ai: ^5.1.0
+  image: ^4.12.0
+  firebase_app_check: ^0.5.1
 
 dev_dependencies:
   flutter_test:
@@ -47,6 +53,10 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  fake_cloud_firestore: ^4.5.0
+  firebase_auth_mocks: ^0.16.0
+  integration_test:
+    sdk: flutter
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -58,6 +68,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/backend_test/black_tshirt.jpg
 
   # To add assets to your application, add an assets section, like this:
   # assets:
