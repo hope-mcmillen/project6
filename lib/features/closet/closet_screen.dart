@@ -6,11 +6,13 @@ import 'closet_photo.dart';
 import 'closet_repository.dart';
 import 'clothing_item.dart';
 import 'item_detail_screen.dart';
+import 'sample_closet.dart';
 
 class ClosetScreen extends StatefulWidget {
-  const ClosetScreen({super.key, this.repository});
+  const ClosetScreen({super.key, this.repository, this.sampleLoader});
 
   final ClosetRepository? repository;
+  final SampleClosetLoader? sampleLoader;
 
   @override
   State<ClosetScreen> createState() => _ClosetScreenState();
@@ -22,6 +24,23 @@ class _ClosetScreenState extends State<ClosetScreen> {
   late final ClosetRepository _repository =
       widget.repository ?? defaultClosetRepository;
   late final Stream<List<ClothingItem>> _items = _repository.watchItems();
+  late final SampleClosetLoader _sampleLoader =
+      widget.sampleLoader ?? SampleClosetLoader(repository: _repository);
+  bool _isLoadingSample = false;
+
+  Future<void> _loadSampleCloset() async {
+    setState(() => _isLoadingSample = true);
+    try {
+      await _sampleLoader.load();
+    } on Exception {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not load the sample closet.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoadingSample = false);
+    }
+  }
 
   Widget _buildGrid(List<ClothingItem> items) {
     return GridView.count(
@@ -65,11 +84,22 @@ class _ClosetScreenState extends State<ClosetScreen> {
   }
 
   Widget _buildEmptyCloset() {
-    return const Center(
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Text(
-          'Your closet is empty. Add your first item to get started.',
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: .min,
+          children: [
+            const Text(
+              'Your closet is empty. Add your first item to get started.',
+              textAlign: .center,
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: _isLoadingSample ? null : _loadSampleCloset,
+              child: const Text('Load sample closet'),
+            ),
+          ],
         ),
       ),
     );

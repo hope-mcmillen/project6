@@ -3,6 +3,7 @@ import 'package:fitcheck_ai/features/closet/closet_photo.dart';
 import 'package:fitcheck_ai/features/closet/closet_repository.dart';
 import 'package:fitcheck_ai/features/closet/closet_screen.dart';
 import 'package:fitcheck_ai/features/closet/clothing_item.dart';
+import 'package:fitcheck_ai/features/closet/sample_closet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -18,17 +19,31 @@ const shirt = ClothingItem(
   ),
 );
 
+class StubSampleLoader extends SampleClosetLoader {
+  StubSampleLoader(this.onLoad);
+
+  final Future<void> Function() onLoad;
+
+  @override
+  Future<void> load() => onLoad();
+}
+
 void main() {
   late InMemoryClosetRepository repository;
 
   setUp(() => repository = InMemoryClosetRepository());
 
-  Future<void> openCloset(WidgetTester tester) async {
+  Future<void> openCloset(
+    WidgetTester tester, {
+    SampleClosetLoader? sampleLoader,
+  }) async {
     tester.view.physicalSize = const Size(600, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
-      MaterialApp(home: ClosetScreen(repository: repository)),
+      MaterialApp(
+        home: ClosetScreen(repository: repository, sampleLoader: sampleLoader),
+      ),
     );
     await tester.pumpAndSettle();
   }
@@ -76,5 +91,38 @@ void main() {
       tester.widget<AddItemScreen>(find.byType(AddItemScreen)).repository,
       same(repository),
     );
+  });
+
+  testWidgets('load button fills an empty closet, then goes away', (
+    tester,
+  ) async {
+    await openCloset(
+      tester,
+      sampleLoader: StubSampleLoader(() => repository.addItem(shirt)),
+    );
+
+    await tester.tap(find.text('Load sample closet'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Blue Top'), findsOneWidget);
+    expect(find.text('Load sample closet'), findsNothing);
+  });
+
+  testWidgets('a failed sample load says so and can be retried', (
+    tester,
+  ) async {
+    await openCloset(
+      tester,
+      sampleLoader: StubSampleLoader(() async => throw Exception('no disk')),
+    );
+
+    await tester.tap(find.text('Load sample closet'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Could not load the sample closet.'), findsOneWidget);
+    final button = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Load sample closet'),
+    );
+    expect(button.onPressed, isNotNull);
   });
 }
