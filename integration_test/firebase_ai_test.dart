@@ -30,9 +30,9 @@ void main() {
   testWidgets('live clothing tagging with the production timeout', (
     tester,
   ) async {
-    final photo = (await rootBundle.load(
-      'assets/backend_test/black_tshirt.jpg',
-    )).buffer.asUint8List();
+    final photo = (await rootBundle.load('backend_test/black_tshirt.jpg'))
+        .buffer
+        .asUint8List();
     final timer = Stopwatch()..start();
     final tags = await services.ai.tagClothing(photo);
     timer.stop();

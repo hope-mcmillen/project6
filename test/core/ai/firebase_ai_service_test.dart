@@ -38,6 +38,20 @@ class SlowClient implements AiJsonClient {
   }) => Completer<String>().future;
 }
 
+class DelayedOutfitClient implements AiJsonClient {
+  @override
+  Future<String> generate({
+    required String prompt,
+    required Schema schema,
+    Uint8List? jpeg,
+  }) => Future.delayed(
+    const Duration(seconds: 11),
+    () =>
+        '{"outfits":[{"itemIds":["sample-dress","sample-shoes"],'
+        '"reason":"The dress and shoes suit the occasion."}]}',
+  );
+}
+
 final tags = jsonEncode({
   'category': 'top',
   'color': 'blue',
@@ -79,7 +93,7 @@ void main() {
   test('timeout has a user-facing message', () async {
     final ai = FirebaseAiService(
       client: SlowClient(),
-      timeout: const Duration(milliseconds: 5),
+      tagTimeout: const Duration(milliseconds: 5),
       preparePhoto: (b) async => b,
     );
     await expectLater(
@@ -92,6 +106,35 @@ void main() {
         ),
       ),
     );
+  });
+  testWidgets('outfits can finish after the shorter tagging deadline', (
+    tester,
+  ) async {
+    final result = service(
+      DelayedOutfitClient(),
+    ).generateOutfits(OutfitRequest(closet: sampleCloset(), occasion: 'work'));
+    final check = expectLater(result, completion(hasLength(1)));
+    await tester.pump(const Duration(seconds: 11));
+    await check;
+  });
+  testWidgets('a stalled outfit request still ends with a retry message', (
+    tester,
+  ) async {
+    final result = service(
+      SlowClient(),
+    ).generateOutfits(OutfitRequest(closet: sampleCloset(), occasion: 'work'));
+    final check = expectLater(
+      result,
+      throwsA(
+        isA<AiServiceException>().having(
+          (error) => error.message,
+          'message',
+          contains('too long'),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 20));
+    await check;
   });
   test('empty or unreadable photo makes no AI request', () async {
     final client = ScriptedClient([tags]);

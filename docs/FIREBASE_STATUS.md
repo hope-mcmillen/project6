@@ -44,7 +44,7 @@ Android integration builds and these live checks pass on the local API 36 emulat
 
 4. `integration_test/firebase_ai_test.dart`: App Check token verification, valid
    clothing tags in **3,479 ms**, and valid closet-based outfits in **5,044 ms**.
-   Both use the normal production 10-second per-attempt deadline. Returned
+   Both used the original production 10-second per-attempt deadline. Returned
    explanations were reviewed and describe only clothes and the occasion.
 5. `integration_test/firebase_startup_test.dart`: the real `main.dart` initializes
    Firebase, restores its signed-in account and reaches the welcome screen with
@@ -55,6 +55,18 @@ schema-constrained JSON. The larger Flash model timed out, so the lightweight
 model was selected using actual live results. A diagnostic run with a longer
 timeout was not counted as a normal app pass. Latencies above are observed test
 results, not a guarantee for every network or future model response.
+
+### November 5 integration check
+
+The Firebase backend merged in PR #2. The live test photo now belongs to the
+Android debug variant, so combining the branch with the sample closet leaves a
+single Flutter asset list. The combined branches passed analysis and 66 tests.
+
+An outfit request exceeded the original 10-second deadline. Outfit requests
+now ask for one short reason and can wait up to 20 seconds per attempt; tagging
+retains its 10-second deadline. After an intermittent service error, the next
+authorized emulator run passed both live checks: **8,462 ms** for clothing tags
+and **3,310 ms** for two validated outfits. The full phone flow is still pending.
 
 To reproduce live AI checks and the offline restart check:
 

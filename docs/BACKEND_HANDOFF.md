@@ -105,10 +105,10 @@ image classifier can currently guarantee a photo contains no person.
 
 The Firebase client requests schema-constrained JSON; local parsing also checks
 types, required tags, lengths and category values. Malformed replies get one
-retry. Each network attempt has a 10-second timeout; the overall operation can
-take longer on retry. Live checks with the default `gemini-3.5-flash-lite`
-model and LOW thinking returned tags in 3.5 seconds and outfits in 5.0 seconds.
-These are observed samples, not a latency guarantee.
+retry. A tagging attempt has a 10-second timeout; an outfit attempt has a
+20-second timeout. The overall operation can take longer on retry. The default
+is `gemini-3.5-flash-lite` with LOW thinking. See FIREBASE_STATUS.md for observed
+live timings and the remaining Friday checks.
 
 Outfit requests include tags/IDs, occasion, note and optional weather. They never
 include image paths or bytes. An incomplete closet causes no AI call. Unknown,

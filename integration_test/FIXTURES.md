@@ -7,7 +7,8 @@ The creator released it into the public domain worldwide (PD-self).
 - Source: https://commons.wikimedia.org/wiki/File:FairtradeCertifiedCottonTShirt.jpg
 - Original: https://upload.wikimedia.org/wikipedia/commons/a/a5/FairtradeCertifiedCottonTShirt.jpg
 
-Verified visually: a close-up of an unworn black T-shirt and its product tag;
-no person is wearing it. It is an explicit live AI tagging fixture, not the
-sample closet. The earlier white-shirt candidate was discarded before use
-because feet appeared at the bottom of the image.
+The photo is a close-up of an unworn black T-shirt and its product tag. It lives
+under `android/app/src/debug/assets/flutter_assets/backend_test/`, so Android
+debug tests can load it through Flutter's asset bundle without an entry in the
+app's `pubspec.yaml`. Release builds do not package the fixture. The sample
+closet has its own separate assets.
