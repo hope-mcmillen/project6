@@ -4,12 +4,21 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/widgets/photo_placeholder.dart';
 import 'closet_photo_picker.dart';
+import 'closet_repository.dart';
+import 'clothing_tagger.dart';
 import 'tag_review_screen.dart';
 
 class AddItemScreen extends StatefulWidget {
-  const AddItemScreen({super.key, this.photoPicker});
+  const AddItemScreen({
+    super.key,
+    this.photoPicker,
+    this.repository,
+    this.tagger,
+  });
 
   final ClosetPhotoPicker? photoPicker;
+  final ClosetRepository? repository;
+  final ClothingTagger? tagger;
 
   @override
   State<AddItemScreen> createState() => _AddItemScreenState();
@@ -27,7 +36,11 @@ class _AddItemScreenState extends State<AddItemScreen> {
       if (!mounted || photoPath == null) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => TagReviewScreen(photoPath: photoPath),
+          builder: (_) => TagReviewScreen(
+            photoPath: photoPath,
+            repository: widget.repository,
+            tagger: widget.tagger,
+          ),
         ),
       );
     } on PlatformException {

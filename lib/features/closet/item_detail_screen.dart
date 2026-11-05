@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../core/widgets/not_built.dart';
 import '../../core/widgets/photo_placeholder.dart';
-import 'tag_review_screen.dart';
 
 class ItemDetailScreen extends StatelessWidget {
   const ItemDetailScreen({super.key, required this.name});
@@ -23,11 +22,7 @@ class ItemDetailScreen extends StatelessWidget {
           const ListTile(title: Text('Formality'), trailing: Text('Sample')),
           const SizedBox(height: 8),
           OutlinedButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const TagReviewScreen()),
-              );
-            },
+            onPressed: () => showNotBuilt(context, 'FR-3 edit saved tags'),
             child: const Text('Edit tags'),
           ),
           const SizedBox(height: 8),
