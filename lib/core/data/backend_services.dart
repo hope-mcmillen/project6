@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_ai/firebase_ai.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 
 import '../ai/ai_service.dart';
 import '../ai/fake_ai_service.dart';
@@ -44,6 +46,13 @@ class BackendServices {
     String modelName = 'gemini-3.8-flash',
   }) async {
     final app = await Firebase.initializeApp(options: options);
+    // New AI Logic projects enforce App Check during provider setup.
+    // Debug tokens stay local and must be authorized in the Firebase console.
+    await FirebaseAppCheck.instanceFor(app: app).activate(
+      providerAndroid: kDebugMode
+          ? const AndroidDebugProvider()
+          : const AndroidPlayIntegrityProvider(),
+    );
     final auth = FirebaseAuth.instanceFor(app: app);
     final user = await ensureAnonymousSignIn(auth);
     final firestore = FirebaseFirestore.instanceFor(app: app);

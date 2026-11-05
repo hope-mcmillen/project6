@@ -11,10 +11,13 @@ fakes, user-scoped Firestore implementations, owner-only rules, structured AI
 tagging, bounded retries, and validated outfit generation. See BACKEND_HANDOFF.md.
 This is not a claim of live deployment or end-to-end completion.
 
-M3-01 is blocked on Google sign-in: no Firebase project exists yet. The Firebase
-console is open for the account owner to sign in. No project ID/options have
-been fabricated. Rules are written, not deployed. M3-04 and M3-06 still require
-live AI checks, and M3-05 needs real offline/restart verification on Android.
+Firebase project `fitcheck-ai-258e1` now exists on Spark. Android registration,
+Anonymous sign-in, Firestore (`nam5`) and owner-only rule deployment are complete.
+Live Android storage/reload and cross-user access checks pass. The remaining
+console blocker is the separate Gemini API agreement; teammate access also
+needs their Google-account emails. See FIREBASE_STATUS.md for current evidence.
+App Check initialization was brought forward because new AI Logic setup enforces
+it immediately. Future daily runs should verify existing work before duplicating it.
 
 ## Daily work
 
@@ -28,7 +31,7 @@ complete, verify it and report that fact instead of creating a duplicate commit.
 
 | Date | Work and completion evidence | Task |
 | --- | --- | --- |
-| Nov 5 Thu | Finish Firebase setup after sign-in; generate real FlutterFire options, enable anonymous auth/Firestore/AI Logic, deploy owner-only rules, verify tagging/storage/outfits live. Resolve backend integration issues before feature freeze. | M3-01, M3-03–06 |
+| Nov 5 Thu | Finish remaining Gemini/App Check and teammate-access setup; generate real FlutterFire options, enable anonymous auth/Firestore/AI Logic, deploy owner-only rules, verify tagging/storage/outfits live. Resolve backend integration issues before feature freeze. | M3-01, M3-03–06 |
 | Nov 6 Fri | Bug fixes only. Reproduce and fix backend issues from the Android Friday flow. Capture actual results for anonymous sign-in, own/other-user access, offline reload, tagging latency, and valid outfits. Do not mark pending checks passed. | Friday MVP |
 | Nov 7 Sat | Implement Open-Meteo weather lookup for rounded coordinates, input validation, network/timeout errors and deterministic tests. | M3-07 |
 | Nov 8 Sun | Add city geocoding fallback, response validation, weather fake and attribution/licence handoff for Hope. | M3-07 |
