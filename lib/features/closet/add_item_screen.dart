@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../core/widgets/photo_placeholder.dart';
+import '../../core/ai/ai_service.dart';
+import '../../core/data/repositories.dart';
+import 'closet_heading.dart';
 import 'closet_photo_picker.dart';
-import 'closet_repository.dart';
-import 'clothing_tagger.dart';
 import 'tag_review_screen.dart';
 
 class AddItemScreen extends StatefulWidget {
@@ -13,12 +13,16 @@ class AddItemScreen extends StatefulWidget {
     super.key,
     this.photoPicker,
     this.repository,
-    this.tagger,
+    this.ai,
+    this.onSaved,
   });
 
   final ClosetPhotoPicker? photoPicker;
   final ClosetRepository? repository;
-  final ClothingTagger? tagger;
+  final AiService? ai;
+
+  /// Called after a new item is saved and the app is back on its first route.
+  final VoidCallback? onSaved;
 
   @override
   State<AddItemScreen> createState() => _AddItemScreenState();
@@ -39,7 +43,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
           builder: (_) => TagReviewScreen(
             photoPath: photoPath,
             repository: widget.repository,
-            tagger: widget.tagger,
+            ai: widget.ai,
+            onSaved: widget.onSaved,
           ),
         ),
       );
@@ -65,23 +70,49 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    // Pushed from the closet it gets a back button; as an app tab it does not.
+    final isPushed = ModalRoute.of(context)?.canPop ?? false;
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Item')),
+      appBar: isPushed ? AppBar(title: const Text('Add Item')) : null,
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
         children: [
-          const PhotoPlaceholder(icon: Icons.add_a_photo, height: 240),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            icon: const Icon(Icons.camera_alt),
-            label: const Text('Take photo'),
-            onPressed: _isPicking ? null : () => _addPhoto(ImageSource.camera),
+          const ClosetHeading(
+            eyebrow: 'A LITTLE CLOSET REFRESH',
+            title: 'Meet your next staple.',
+            subtitle: 'Snap one piece and we will suggest its tags.',
           ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.photo_library),
-            label: const Text('Choose from gallery'),
-            onPressed: _isPicking ? null : () => _addPhoto(ImageSource.gallery),
+          ClosetCard(
+            child: Column(
+              crossAxisAlignment: .stretch,
+              children: [
+                Icon(Icons.add_a_photo_outlined, size: 90, color: primary),
+                const SizedBox(height: 16),
+                const Text(
+                  'Photograph only the clothing item, laid flat or on a '
+                  'hanger, with no people in the photo.',
+                  textAlign: .center,
+                  style: TextStyle(color: Colors.black54, height: 1.5),
+                ),
+                const SizedBox(height: 24),
+                FilledButton.icon(
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text('Take photo'),
+                  onPressed: _isPicking
+                      ? null
+                      : () => _addPhoto(ImageSource.camera),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.photo_library),
+                  label: const Text('Choose from gallery'),
+                  onPressed: _isPicking
+                      ? null
+                      : () => _addPhoto(ImageSource.gallery),
+                ),
+              ],
+            ),
           ),
         ],
       ),

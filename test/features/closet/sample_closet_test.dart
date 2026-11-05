@@ -1,10 +1,11 @@
 import 'dart:io';
 
-import 'package:fitcheck_ai/features/closet/closet_repository.dart';
-import 'package:fitcheck_ai/features/closet/clothing_item.dart';
+import 'package:fitcheck_ai/core/data/models.dart';
 import 'package:fitcheck_ai/features/closet/sample_closet.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'closet_test_helpers.dart';
 
 class BrokenBundle extends CachingAssetBundle {
   BrokenBundle(this.failOn);
@@ -22,25 +23,25 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late Directory directory;
-  late InMemoryClosetRepository repository;
+  late TestClosetRepository repository;
 
   setUp(() async {
     directory = await Directory.systemTemp.createTemp('sample_closet');
-    repository = InMemoryClosetRepository();
+    repository = TestClosetRepository();
   });
 
   tearDown(() => directory.delete(recursive: true));
 
   test('the sample has enough of each type for the outfit flow', () {
-    expect(sampleCloset.length, inInclusiveRange(15, 20));
-    final categories = sampleCloset.map((sample) => sample.tags.category);
-    for (final needed in ['Top', 'Bottom', 'Shoes']) {
+    expect(sampleClothes.length, inInclusiveRange(15, 20));
+    final categories = sampleClothes.map((sample) => sample.tags.category);
+    for (final needed in ['top', 'bottom', 'shoes']) {
       expect(categories, contains(needed));
     }
-    expect(clothingCategories, containsAll(categories.toSet()));
+    expect(ClothingTags.categories, containsAll(categories.toSet()));
     expect(
-      sampleCloset.map((sample) => sample.imageName).toSet(),
-      hasLength(sampleCloset.length),
+      sampleClothes.map((sample) => sample.imageName).toSet(),
+      hasLength(sampleClothes.length),
     );
   });
 
@@ -52,12 +53,13 @@ void main() {
 
     await loader.load();
 
-    expect(repository.items, hasLength(sampleCloset.length));
-    for (final sample in sampleCloset) {
+    expect(repository.items, hasLength(sampleClothes.length));
+    for (final sample in sampleClothes) {
       final item = repository.items.singleWhere(
         (item) => item.id.endsWith(sample.imageName),
       );
       expect(item.tags, same(sample.tags));
+      expect(item.isSample, isTrue);
       expect(item.photoPath, startsWith('${directory.path}/closet_photos/'));
       final bundled = await rootBundle.load(sample.assetPath);
       expect(await File(item.photoPath).length(), bundled.lengthInBytes);
@@ -67,7 +69,7 @@ void main() {
   test('a failed load adds nothing and leaves no files behind', () async {
     final loader = SampleClosetLoader(
       repository: repository,
-      bundle: BrokenBundle(sampleCloset.last.assetPath),
+      bundle: BrokenBundle(sampleClothes.last.assetPath),
       photosDirectory: () async => directory,
     );
 

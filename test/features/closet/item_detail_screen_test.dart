@@ -1,48 +1,47 @@
 import 'dart:io';
 
 import 'package:fitcheck_ai/features/closet/closet_photo_picker.dart';
-import 'package:fitcheck_ai/features/closet/closet_repository.dart';
-import 'package:fitcheck_ai/features/closet/clothing_item.dart';
 import 'package:fitcheck_ai/features/closet/item_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const shoes = ClothingItem(
-  id: 'shoes',
-  photoPath: '/photos/shoes.jpg',
-  tags: ClothingTags(category: 'Shoes'),
+import 'closet_test_helpers.dart';
+
+final shoes = testItem(
+  'shoes',
+  category: 'shoes',
+  color: 'black',
+  pattern: '',
+  formality: '',
+  season: '',
 );
 
 void main() {
-  late InMemoryClosetRepository repository;
+  late TestClosetRepository repository;
   late List<String> deletedPhotos;
 
   setUp(() async {
-    repository = InMemoryClosetRepository();
+    repository = TestClosetRepository();
     deletedPhotos = [];
-    await repository.addItem(shoes);
+    await repository.saveItem(shoes);
   });
 
   Future<void> openDetail(WidgetTester tester) async {
-    tester.view.physicalSize = const Size(600, 1600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Builder(
-          builder: (context) => Scaffold(
-            body: TextButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ItemDetailScreen(
-                    item: shoes,
-                    repository: repository,
-                    deletePhoto: (path) async => deletedPhotos.add(path),
-                  ),
+    await pumpClosetScreen(
+      tester,
+      Builder(
+        builder: (context) => Scaffold(
+          body: TextButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ItemDetailScreen(
+                  item: shoes,
+                  repository: repository,
+                  deletePhoto: (path) async => deletedPhotos.add(path),
                 ),
               ),
-              child: const Text('Open'),
             ),
+            child: const Text('Open'),
           ),
         ),
       ),
@@ -51,18 +50,24 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('a blank tag reads as not set', (tester) async {
+  Future<void> deleteAndConfirm(WidgetTester tester, String choice) async {
+    await tester.tap(find.text('Delete item'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(choice));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('shows readable tags and marks blank ones', (tester) async {
     await openDetail(tester);
-    expect(find.text('Not set'), findsNWidgets(4));
+    expect(find.text('Black shoes'), findsOneWidget);
+    expect(find.text('Shoes'), findsOneWidget);
+    expect(find.text('Not set'), findsNWidgets(3));
   });
 
   testWidgets('cancelling keeps the item and its photo', (tester) async {
     await openDetail(tester);
 
-    await tester.tap(find.text('Delete item'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
+    await deleteAndConfirm(tester, 'Cancel');
 
     expect(repository.items, hasLength(1));
     expect(deletedPhotos, isEmpty);
@@ -74,15 +79,23 @@ void main() {
   ) async {
     await openDetail(tester);
 
-    await tester.tap(find.text('Delete item'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Delete'));
-    await tester.pumpAndSettle();
+    await deleteAndConfirm(tester, 'Delete');
 
     expect(repository.items, isEmpty);
     expect(deletedPhotos, ['/photos/shoes.jpg']);
     expect(find.text('Open'), findsOneWidget);
     expect(find.text('Item deleted'), findsOneWidget);
+  });
+
+  testWidgets('a rejected delete keeps the photo and says so', (tester) async {
+    await openDetail(tester);
+    repository.failWrites = true;
+
+    await deleteAndConfirm(tester, 'Delete');
+
+    expect(repository.items, hasLength(1));
+    expect(deletedPhotos, isEmpty);
+    expect(find.text('Could not delete that item. Try again.'), findsOneWidget);
   });
 
   test(
