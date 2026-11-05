@@ -71,7 +71,6 @@ void main() {
   testWidgets('saves the values the user changed', (tester) async {
     await openScreen(tester, StubTagger(() async => suggestedTags));
     await tester.pumpAndSettle();
-    final items = repository.watchItems();
 
     await tester.enterText(field('Color'), 'Green');
     await tester.enterText(field('Pattern'), 'Striped');
@@ -82,7 +81,7 @@ void main() {
     await tester.tap(find.text('Save to closet'));
     await tester.pumpAndSettle();
 
-    final saved = (await items.first).single;
+    final saved = repository.items.single;
     expect(saved.photoPath, '/photos/shirt.jpg');
     expect(saved.tags.category, 'Outerwear');
     expect(saved.tags.color, 'Green');
@@ -104,7 +103,7 @@ void main() {
     await tester.tap(find.text('Save to closet'));
     await tester.pumpAndSettle();
     expect(find.text('Choose a category'), findsOneWidget);
-    expect(await repository.watchItems().first, isEmpty);
+    expect(repository.items, isEmpty);
 
     await tester.tap(find.byType(DropdownButtonFormField<String>));
     await tester.pumpAndSettle();
@@ -114,7 +113,7 @@ void main() {
     await tester.tap(find.text('Save to closet'));
     await tester.pumpAndSettle();
 
-    final saved = (await repository.watchItems().first).single;
+    final saved = repository.items.single;
     expect(saved.tags.category, 'Shoes');
     expect(saved.tags.color, 'Black');
     expect(saved.name, 'Black Shoes');
@@ -133,6 +132,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Choose a category'), findsOneWidget);
-    expect(await repository.watchItems().first, isEmpty);
+    expect(repository.items, isEmpty);
   });
 }

@@ -46,3 +46,12 @@ class ClosetPhotoPicker {
     return dot == -1 ? '.jpg' : fileName.substring(dot);
   }
 }
+
+/// Removes a saved closet photo. A file that is already gone is not an error.
+Future<void> deleteClosetPhoto(String photoPath) async {
+  try {
+    await File(photoPath).delete();
+  } on PathNotFoundException {
+    return;
+  }
+}

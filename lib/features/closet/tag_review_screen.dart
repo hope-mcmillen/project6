@@ -1,8 +1,6 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
-import '../../core/widgets/photo_placeholder.dart';
+import 'closet_photo.dart';
 import 'closet_repository.dart';
 import 'clothing_item.dart';
 import 'clothing_tagger.dart';
@@ -173,15 +171,11 @@ class _TagReviewScreenState extends State<TagReviewScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.file(
-              File(widget.photoPath),
-              height: 240,
-              fit: BoxFit.contain,
-              semanticLabel: 'Selected clothing photo',
-              errorBuilder: (_, _, _) => const PhotoPlaceholder(height: 160),
-            ),
+          ClosetPhoto(
+            photoPath: widget.photoPath,
+            height: 240,
+            fit: BoxFit.contain,
+            semanticLabel: 'Selected clothing photo',
           ),
           const SizedBox(height: 16),
           if (_isLoadingTags)
