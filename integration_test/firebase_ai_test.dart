@@ -31,7 +31,7 @@ void main() {
     tester,
   ) async {
     final photo = (await rootBundle.load(
-      'assets/backend_test/black_tshirt.jpg',
+      'backend_test/black_tshirt.jpg',
     )).buffer.asUint8List();
     final timer = Stopwatch()..start();
     final tags = await services.ai.tagClothing(photo);
