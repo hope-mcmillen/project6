@@ -43,7 +43,7 @@ class BackendServices {
   /// Call only once at startup, before accessing Firestore anywhere else.
   static Future<BackendServices> connect({
     required FirebaseOptions options,
-    String modelName = 'gemini-3.8-flash',
+    String modelName = 'gemini-3.5-flash-lite',
   }) async {
     final app = await Firebase.initializeApp(options: options);
     // New AI Logic projects enforce App Check during provider setup.

@@ -13,9 +13,10 @@ This is not a claim of live deployment or end-to-end completion.
 
 Firebase project `fitcheck-ai-258e1` now exists on Spark. Android registration,
 Anonymous sign-in, Firestore (`nam5`) and owner-only rule deployment are complete.
-Live Android storage/reload and cross-user access checks pass. The Gemini provider is enabled. The remaining console steps are App Check
-authorization and teammate access. Kameron's email was provided privately; Hope
-and Keith's Google-account emails are still needed. See FIREBASE_STATUS.md for current evidence.
+Live Android startup, storage/reload, cross-user access, offline restart,
+clothing tagging and outfit checks pass. The Gemini provider is enabled. The local emulator is authorized for App Check, and Kameron has the approved
+Firebase Viewer role. Release App Check registration and Hope/Keith's access
+remain pending. Their Google-account emails are still needed. See FIREBASE_STATUS.md for current evidence.
 App Check initialization was brought forward because new AI Logic setup enforces
 it immediately. Future daily runs should verify existing work before duplicating it.
 

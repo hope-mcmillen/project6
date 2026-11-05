@@ -7,14 +7,14 @@ import 'package:fitcheck_ai/core/data/fake_repositories.dart';
 import 'package:fitcheck_ai/core/data/models.dart';
 import 'package:fitcheck_ai/firebase_options.dart';
 
-/// Explicit, live Gemini calls. Register this emulator's debug token first.
-/// --no-uninstall keeps that device credential stable for later local testing.
+/// Explicit live Gemini calls using the app's default model and timeout.
+/// Register this emulator's debug token first, then run with --no-uninstall
+/// to preserve its authorized development credential between launches.
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  testWidgets('live verified clothing tagging and outfit generation', (
-    tester,
-  ) async {
-    final services = await BackendServices.connect(
+  late BackendServices services;
+  setUpAll(() async {
+    services = await BackendServices.connect(
       options: DefaultFirebaseOptions.android,
     );
     final token = await FirebaseAppCheck.instance
@@ -26,6 +26,10 @@ void main() {
       reason: 'Authorize the emulator debug token in Firebase App Check first.',
     );
     // Never print App Check tokens or the SDK's private debug credential.
+  });
+  testWidgets('live clothing tagging with the production timeout', (
+    tester,
+  ) async {
     final photo = (await rootBundle.load(
       'assets/backend_test/black_tshirt.jpg',
     )).buffer.asUint8List();
@@ -37,16 +41,22 @@ void main() {
     expect(tags.pattern, isNotEmpty);
     expect(tags.formality, isNotEmpty);
     expect(tags.season, isNotEmpty);
-    // Timing is evidence, not an invariant: model/network load can vary.
+    // Explicit public fixture: record latency and clothing tags, never credentials.
     // ignore: avoid_print
-    print('Clothing tagging completed in ${timer.elapsedMilliseconds} ms.');
+    print('Clothing tags in ${timer.elapsedMilliseconds} ms: ${tags.toMap()}');
+  }, timeout: const Timeout(Duration(minutes: 1)));
+  testWidgets('live outfits with the production timeout and closet ID checks', (
+    tester,
+  ) async {
     final closet = sampleCloset();
     final request = OutfitRequest(
       closet: closet,
       occasion: 'casual class',
       weather: const WeatherSummary(temperatureC: 22, rainChancePercent: 10),
     );
+    final timer = Stopwatch()..start();
     final outfits = await services.ai.generateOutfits(request);
+    timer.stop();
     expect(outfits.length, inInclusiveRange(1, 3));
     expect(
       outfits.every(
@@ -55,5 +65,10 @@ void main() {
       isTrue,
     );
     expect(outfits.every((o) => o.reason.isNotEmpty), isTrue);
-  }, timeout: const Timeout(Duration(minutes: 3)));
+    // These reasons refer only to the explicit sample fixture.
+    // ignore: avoid_print
+    print(
+      'Outfits in ${timer.elapsedMilliseconds} ms: ${outfits.map((o) => o.reason).join(' | ')}',
+    );
+  }, timeout: const Timeout(Duration(minutes: 1)));
 }

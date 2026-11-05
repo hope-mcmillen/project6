@@ -14,7 +14,7 @@ abstract interface class AiJsonClient {
 class FirebaseJsonClient implements AiJsonClient {
   FirebaseJsonClient({
     required this.firebaseAI,
-    this.modelName = 'gemini-3.8-flash',
+    this.modelName = 'gemini-3.5-flash-lite',
   });
   final FirebaseAI firebaseAI;
   final String modelName;
@@ -30,6 +30,9 @@ class FirebaseJsonClient implements AiJsonClient {
         responseMimeType: 'application/json',
         responseSchema: schema,
         temperature: 0.2,
+        // Low reasoning keeps simple tagging and selection responsive.
+        thinkingConfig: ThinkingConfig.withThinkingLevel(ThinkingLevel.low),
+        maxOutputTokens: 2048,
       ),
     );
     final response = await model.generateContent([

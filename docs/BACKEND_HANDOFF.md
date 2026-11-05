@@ -84,19 +84,16 @@ first user's sample record. See FIREBASE_STATUS.md for the remaining checks.
 - The Firebase project, Android app, Anonymous provider, Firestore and owner-only
   rules are configured. Real storage/reload and cross-user rule checks pass.
 - The account owner enabled the Gemini Developer API in AI Logic. App Check
-  Basic enforcement is active. Emulator authorization is awaiting explicit
-  owner approval.
+  Basic enforcement is active. The owner-approved local emulator debug credential is registered
+  and token verification passes.
   `BackendServices.connect` initializes the debug provider in debug builds and
-  Play Integrity in release builds. An authorized debug token and a configured
-  release provider are still needed before verified AI calls can succeed.
+  Play Integrity in release builds. A configured release provider is still needed for release AI calls.
 - Debug tokens are credentials: keep them local, never commit/log them in a
   public artifact, and obtain approval before authorizing a token in the console.
 - The local daily AI request limit is still scheduled under M3-08.
-- Teammate access is pending their Google-account email addresses and approval
-  of the concrete recipient/role list. Billing remains off.
-- No web or Apple app has been registered. The optional web registration was
-  blocked by automatic approval review and was cancelled; it is not required
-  for Android.
+- Kameron has the approved Firebase Viewer role. Hope and Keith's addresses
+  and role approval are still pending. Billing remains off.
+- Only Android is registered; configure other platforms before enabling them.
 
 ## AI tagging/outfits (M3-04, M3-06)
 
@@ -109,7 +106,9 @@ image classifier can currently guarantee a photo contains no person.
 The Firebase client requests schema-constrained JSON; local parsing also checks
 types, required tags, lengths and category values. Malformed replies get one
 retry. Each network attempt has a 10-second timeout; the overall operation can
-take longer on retry and no live latency claim has been verified.
+take longer on retry. Live checks with the default `gemini-3.5-flash-lite`
+model and LOW thinking returned tags in 3.5 seconds and outfits in 5.0 seconds.
+These are observed samples, not a latency guarantee.
 
 Outfit requests include tags/IDs, occasion, note and optional weather. They never
 include image paths or bytes. An incomplete closet causes no AI call. Unknown,
@@ -125,9 +124,10 @@ sign-in reuse, scoped persistence round trips, owner-only document access using
 the fake rules evaluator, image preparation, malformed JSON/retries/timeouts,
 and invalid outfit IDs. Existing screen tests also remain in the suite.
 
-Still required: App Check authorization,
-real AI tagging and outfit smoke checks, teammate access and screen integration,
-and the Android full feature flow. See FIREBASE_STATUS.md for offline test results. M3-07–11 are scheduled in MARCUS_DAILY_PLAN.md.
+Live tagging/outfit checks and real startup pass. Still required: release App
+Check registration, remaining teammate access, feature-screen integration and
+the full real-phone flow. See FIREBASE_STATUS.md for exact test evidence and
+debug/release build setup. M3-07–11 are scheduled in MARCUS_DAILY_PLAN.md.
 No P0 card should be marked Done solely because its code has been written.
 
 References: [Flutter setup](https://firebase.google.com/docs/flutter/setup),
