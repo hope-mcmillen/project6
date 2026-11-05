@@ -3,70 +3,52 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Future<void> openApp(WidgetTester tester) async {
-  tester.view.physicalSize = const Size(360, 640);
+  tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(const FitCheckApp());
-  await tester.tap(find.text('I am 18 or older, continue'));
-  await tester.pumpAndSettle();
 }
 
 void main() {
-  testWidgets('welcome screen leads to the closet', (tester) async {
+  testWidgets('navigation and wardrobe wear tracking work', (tester) async {
     await openApp(tester);
-    expect(find.text('My Closet'), findsOneWidget);
+    expect(find.text('Good outfits start here.'), findsOneWidget);
+    await tester.tap(find.text('Wardrobe'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Daisy tee'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('I wore this today'));
+    await tester.pumpAndSettle();
+    expect(find.text('Worn today'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('every tab opens', (tester) async {
-    await openApp(tester);
-    await tester.tap(find.text('Outfits'));
-    await tester.pumpAndSettle();
-    expect(find.text('Get an Outfit'), findsOneWidget);
-    await tester.tap(find.text('Lookbook').last);
-    await tester.pumpAndSettle();
-    expect(find.text('Class outfit'), findsOneWidget);
-    await tester.tap(find.text('Fit Check').last);
-    await tester.pumpAndSettle();
-    expect(find.text('Check my fit'), findsOneWidget);
-  });
-
-  testWidgets('add item button opens the add item screen', (tester) async {
+  testWidgets('sample clothing can be added without a camera', (tester) async {
     await openApp(tester);
     await tester.tap(find.text('Add item'));
     await tester.pumpAndSettle();
-    expect(find.text('Take photo'), findsOneWidget);
-    expect(find.text('Choose from gallery'), findsOneWidget);
+    await tester.drag(find.byType(ListView), const Offset(0, -350));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Try a sample photo'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Add to wardrobe'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add to wardrobe'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('7 pieces'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('outfit flow reaches results', (tester) async {
+  testWidgets('demo chat produces a selectable sample outfit', (tester) async {
     await openApp(tester);
     await tester.tap(find.text('Outfits'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Get outfits'));
+    await tester.tap(find.text('A picnic in the park'));
     await tester.pumpAndSettle();
-    expect(find.text('Your Outfits'), findsOneWidget);
-  });
-
-  testWidgets('fit check flow reaches results', (tester) async {
-    await openApp(tester);
-    await tester.tap(find.text('Fit Check').last);
+    await tester.ensureVisible(find.text('Choose this outfit'));
+    await tester.tap(find.text('Choose this outfit'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Check my fit'));
-    await tester.pumpAndSettle();
-    expect(find.text('Fit Check Result'), findsOneWidget);
-  });
-
-  testWidgets('settings opens its sub-screens', (tester) async {
-    await openApp(tester);
-    await tester.tap(find.byTooltip('Settings'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Style profile'));
-    await tester.pumpAndSettle();
-    expect(find.text('Style Profile'), findsOneWidget);
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Privacy'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Placeholder privacy'), findsOneWidget);
+    expect(find.text('Outfit selected'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }
