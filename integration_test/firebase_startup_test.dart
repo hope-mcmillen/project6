@@ -7,7 +7,7 @@ import 'package:fitcheck_ai/main.dart' as app;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  testWidgets('real app startup initializes Firebase before showing welcome', (
+  testWidgets('real app startup connects Firebase before showing the app', (
     tester,
   ) async {
     app.main();
@@ -16,9 +16,10 @@ void main() {
       EnginePhase.sendSemanticsUpdate,
       const Duration(seconds: 45),
     );
-    expect(find.text('I am 18 or older, continue'), findsOneWidget);
-    expect(FirebaseAuth.instance.currentUser, isNotNull);
-    final services = BackendScope.of(tester.element(find.byType(FitCheckApp)));
+    final appWidget = find.byType(FitCheckApp);
+    expect(appWidget, findsOneWidget);
+    final services = BackendScope.of(tester.element(appWidget));
+    expect(FirebaseAuth.instance.currentUser?.isAnonymous, isTrue);
     expect(await services.closet.getItems(), isNotNull);
   }, timeout: const Timeout(Duration(minutes: 1)));
 }

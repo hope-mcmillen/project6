@@ -5,8 +5,11 @@ import 'package:flutter/foundation.dart';
 /// Firebase client keys identify the app; Security Rules and App Check authorize it.
 /// No Gemini Developer API secret belongs here.
 class DefaultFirebaseOptions {
+  static bool get isConfiguredForCurrentPlatform =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
   static FirebaseOptions get currentPlatform {
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    if (isConfiguredForCurrentPlatform) {
       return android;
     }
     throw UnsupportedError(
