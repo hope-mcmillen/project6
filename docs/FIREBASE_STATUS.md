@@ -68,6 +68,22 @@ retains its 10-second deadline. After an intermittent service error, the next
 authorized emulator run passed both live checks: **8,462 ms** for clothing tags
 and **3,310 ms** for two validated outfits. The full phone flow is still pending.
 
+### November 6 Android startup regression
+
+The merged UI launched without `BackendScope`. The startup regression test
+reproduced this on `master`. The Friday fix restores `FirebaseBackend` at the
+Android entry point and preserves the UI preview on unregistered platforms.
+On the review branch, the same test reached the current app with an anonymous
+Firebase user and read from the shared closet repository. Static analysis and
+all 63 Flutter tests passed locally.
+
+The authorized emulator also verified Firestore owner access, cross-user
+denials, and cached closet reads after a separate offline relaunch. The first
+Gemini run returned tags in **5,015 ms** and timed out on outfits with the
+retry message. A fresh run with the same settings returned tags in **4,224 ms**
+and two validated outfits in **2,124 ms**. The feature screens still use demo
+data, and a physical Android phone was unavailable for the end-to-end flow.
+
 To reproduce live AI checks and the offline restart check:
 
 ```sh
