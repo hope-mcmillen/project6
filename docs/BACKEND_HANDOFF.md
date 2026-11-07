@@ -117,6 +117,58 @@ once and then surface a clear error. Responses are deduplicated and limited to
 three. Clothing-only wording is requested in the prompt; human review of live
 responses remains necessary. Prompts alone do not guarantee safe wording.
 
+## Weather coordinates (M3-07, November 7)
+
+`OpenMeteoWeatherService` in `core/weather/open_meteo_weather_service.dart`
+implements `WeatherService.weatherAt(latitude: ..., longitude: ...)`. It returns
+the shared `WeatherSummary` for an `OutfitRequest`. Coordinates are validated
+before sending and rounded to two decimal places. The service acquires no
+location permission and does not persist coordinates. Member 2 supplies the permitted
+location and handles `WeatherServiceException.message` with retry/city entry.
+City lookup and the fake are scheduled for November 8.
+
+```dart
+final weatherService = OpenMeteoWeatherService();
+try {
+  final weather = await weatherService.weatherAt(
+    latitude: latitude, longitude: longitude,
+  );
+  final request = OutfitRequest(
+    closet: items, occasion: occasion, weather: weather,
+  );
+  final outfits = await services.ai.generateOutfits(request);
+  // Present outfits in the feature screen.
+} on WeatherServiceException catch (error) {
+  // Show error.message and let the user retry.
+} finally {
+  weatherService.close();
+}
+```
+
+The response uses current modelled Celsius temperature and precipitation
+probability, rounded to a whole percent. The existing `rainChancePercent` field
+holds that precipitation chance, including snow. Coordinate lookups leave
+`locationLabel` empty. A request waits up to 10 seconds, with clear errors for
+invalid input, network failures, rate limits, server errors and invalid replies.
+
+Weather displays must credit Open-Meteo with a nearby source link, a licence
+link, and an indication that values are rounded. Display “Weather data by
+Open-Meteo.com” as a source link, provide the CC BY 4.0 licence link, and label
+precipitation chance as rounded. UI credit remains part of Hope's weather
+integration. [Open-Meteo](https://open-meteo.com/),
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+The public endpoint is for this non-commercial course project. The provider
+documents its data and usage requirements in the
+[forecast API](https://open-meteo.com/en/docs),
+[licence](https://open-meteo.com/en/licence) and
+[terms](https://open-meteo.com/en/terms).
+
+Local November 7 verification on the weather branch found no analysis issues
+and all 98 Flutter tests passed, including 35 weather tests. An opt-in service
+call using public campus-area coordinates returned a valid summary in 1,050 ms.
+This is branch validation. M3-07 still needs city lookup, its fake, screen
+integration with visible attribution, and merged review before completion.
+
 ## Validation and remaining work
 
 Run `flutter analyze` and `flutter test`. Tests cover shared contracts/fakes,
