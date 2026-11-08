@@ -6,6 +6,10 @@ abstract interface class WeatherService {
     required double latitude,
     required double longitude,
   });
+
+  /// Resolves a city name, optionally qualified by country or region.
+  /// Show the returned locationLabel so users can confirm the selected place.
+  Future<WeatherSummary> weatherForCity(String city);
 }
 
 class WeatherServiceException implements Exception {
