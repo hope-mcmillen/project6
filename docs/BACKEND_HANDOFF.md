@@ -117,15 +117,16 @@ once and then surface a clear error. Responses are deduplicated and limited to
 three. Clothing-only wording is requested in the prompt; human review of live
 responses remains necessary. Prompts alone do not guarantee safe wording.
 
-## Weather coordinates (M3-07, November 7)
+## Weather (M3-07, November 8)
 
 `OpenMeteoWeatherService` in `core/weather/open_meteo_weather_service.dart`
-implements `WeatherService.weatherAt(latitude: ..., longitude: ...)`. It returns
-the shared `WeatherSummary` for an `OutfitRequest`. Coordinates are validated
-before sending and rounded to two decimal places. The service acquires no
-location permission and does not persist coordinates. Member 2 supplies the permitted
-location and handles `WeatherServiceException.message` with retry/city entry.
-City lookup and the fake are scheduled for November 8.
+implements `WeatherService.weatherAt(latitude: ..., longitude: ...)` and
+`weatherForCity(city)`. Both return the shared `WeatherSummary` for an
+`OutfitRequest`. Coordinates are validated before sending and rounded to two
+decimal places, including those returned by city geocoding. The service acquires
+no location permission and does not persist coordinates. Member 2 supplies the
+permitted location and handles `WeatherServiceException.message` with retry or
+city entry.
 
 ```dart
 final weatherService = OpenMeteoWeatherService();
@@ -145,17 +146,38 @@ try {
 }
 ```
 
+When location permission is unavailable, call
+`await weatherService.weatherForCity(cityInput)` through the same service. City
+search selects Open-Meteo's first match. Show the returned `locationLabel`,
+which includes the city, region and country when available. Users can refine
+ambiguous input with a country or region, such as `Paris, France`. Empty and
+single-character searches fail before a network call, and no matches return
+a city-entry message. The service validates geocoding coordinates and labels
+before requesting a forecast. [Geocoding API](https://open-meteo.com/en/docs/geocoding-api).
+
+For screen tests, inject a `WeatherService` using `FakeWeatherService` from
+`core/weather/fake_weather_service.dart`. Its default fixture is 22 °C, 10%
+precipitation chance and `Sample city`. Pass `weather: WeatherSummary(...)` for
+a specific fixture or `failRequests: true` to exercise the retry UI. Both fake
+lookup methods return the configured fixture without networking or geocoding.
+
 The response uses current modelled Celsius temperature and precipitation
 probability, rounded to a whole percent. The existing `rainChancePercent` field
 holds that precipitation chance, including snow. Coordinate lookups leave
-`locationLabel` empty. A request waits up to 10 seconds, with clear errors for
-invalid input, network failures, rate limits, server errors and invalid replies.
+`locationLabel` empty. Responses must declare Celsius and percent units, contain
+finite numeric values and keep probability within 0–100. A request waits up to
+10 seconds and aborts on timeout. City lookup performs two sequential requests,
+so it can wait up to 20 seconds. Invalid input, network failures, rate limits,
+server errors and invalid replies return clear errors.
 
 Weather displays must credit Open-Meteo with a nearby source link, a licence
 link, and an indication that values are rounded. Display “Weather data by
 Open-Meteo.com” as a source link, provide the CC BY 4.0 licence link, and label
-precipitation chance as rounded. UI credit remains part of Hope's weather
-integration. [Open-Meteo](https://open-meteo.com/),
+precipitation chance as rounded. Include credit for GeoNames when displaying
+resolved city labels. A suitable changes notice is “Location rounded to 0.01° and
+precipitation chance rounded to whole percent.” UI credit remains part of
+Hope's weather integration. [Open-Meteo](https://open-meteo.com/),
+[GeoNames](https://www.geonames.org/),
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 The public endpoint is for this non-commercial course project. The provider
 documents its data and usage requirements in the
@@ -163,11 +185,17 @@ documents its data and usage requirements in the
 [licence](https://open-meteo.com/en/licence) and
 [terms](https://open-meteo.com/en/terms).
 
-Local November 7 verification on the weather branch found no analysis issues
+November 7 verification on the weather branch found no analysis issues
 and all 98 Flutter tests passed, including 35 weather tests. An opt-in service
 call using public campus-area coordinates returned a valid summary in 1,050 ms.
-This is branch validation. M3-07 still needs city lookup, its fake, screen
-integration with visible attribution, and merged review before completion.
+The coordinate lookup merged in PR #7. November 8's city lookup, fake and
+additional response validation are ready for review. Screen integration with
+visible attribution and merged review remain necessary before M3-07 completion.
+Local November 8 analysis found no issues and all 118 Flutter tests passed.
+Explicit service calls returned city weather for Baton Rouge, Louisiana in
+992 ms and coordinate weather for a public campus-area location in 52 ms.
+These are service observations on the review branch. A physical Android phone
+was unavailable for the feature flow.
 
 ## Validation and remaining work
 

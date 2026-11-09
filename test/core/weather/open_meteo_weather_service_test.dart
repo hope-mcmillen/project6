@@ -11,14 +11,25 @@ Map<String, dynamic> forecast({
   Object? temperature = 22.5,
   Object? probability = 35,
 }) => {
+  'current_units': {'temperature_2m': '°C', 'precipitation_probability': '%'},
   'current': {
     'temperature_2m': temperature,
     'precipitation_probability': probability,
   },
 };
 
+const jsonHeaders = {'content-type': 'application/json; charset=utf-8'};
+
 http.Response weatherResponse(Map<String, dynamic> data) =>
-    http.Response(jsonEncode(data), 200);
+    http.Response(jsonEncode(data), 200, headers: jsonHeaders);
+
+Map<String, dynamic> cityMatch() => {
+  'name': 'Baton Rouge',
+  'admin1': 'Louisiana',
+  'country': 'United States',
+  'latitude': 30.45075,
+  'longitude': -91.15455,
+};
 
 OpenMeteoWeatherService service(
   Future<http.Response> Function(http.Request) handler, {
@@ -195,6 +206,170 @@ void main() {
     },
   );
 
+  test(
+    'city lookup encodes its query and rounds the resolved coordinates',
+    () async {
+      final requests = <Uri>[];
+      final weather = service((request) async {
+        requests.add(request.url);
+        if (requests.length == 1) {
+          expect(request.url.host, 'geocoding-api.open-meteo.com');
+          expect(request.url.path, '/v1/search');
+          expect(request.url.queryParameters, {
+            'name': 'Baton Rouge, Louisiana',
+            'count': '1',
+            'language': 'en',
+            'format': 'json',
+          });
+          return weatherResponse({
+            'results': [cityMatch()],
+          });
+        }
+        expect(request.url.host, 'api.open-meteo.com');
+        expect(request.url.queryParameters['latitude'], '30.45');
+        expect(request.url.queryParameters['longitude'], '-91.15');
+        return weatherResponse(forecast());
+      });
+      final result = await weather.weatherForCity('  Baton Rouge, Louisiana  ');
+      expect(result.locationLabel, 'Baton Rouge, Louisiana, United States');
+      expect(result.temperatureC, 22.5);
+      expect(result.rainChancePercent, 35);
+      expect(requests.length, 2);
+    },
+  );
+
+  test('city labels handle optional regions and repeated names', () async {
+    final city = cityMatch()
+      ..['name'] = 'Berlin'
+      ..['admin1'] = 'Berlin'
+      ..['country'] = 'Germany';
+    final weather = service((request) async {
+      if (request.url.host == 'geocoding-api.open-meteo.com') {
+        return weatherResponse({
+          'results': [city],
+        });
+      }
+      return weatherResponse(forecast());
+    });
+    expect(
+      (await weather.weatherForCity('Berlin')).locationLabel,
+      'Berlin, Germany',
+    );
+    city.remove('admin1');
+    city.remove('country');
+    expect((await weather.weatherForCity('Berlin')).locationLabel, 'Berlin');
+  });
+
+  test('short city input makes no network request', () async {
+    var requests = 0;
+    final weather = service((_) async {
+      requests++;
+      return weatherResponse(forecast());
+    });
+    for (final city in ['', '   ', 'a', ' ü ']) {
+      await expectLater(
+        weather.weatherForCity(city),
+        weatherError('two characters'),
+      );
+    }
+    expect(requests, 0);
+  });
+
+  for (final data in [
+    <String, dynamic>{},
+    {'results': []},
+  ]) {
+    test('a city with no matches returns a useful error: $data', () async {
+      var requests = 0;
+      final weather = service((_) async {
+        requests++;
+        return weatherResponse(data);
+      });
+      await expectLater(
+        weather.weatherForCity('Unknown place'),
+        weatherError('No city found'),
+      );
+      expect(requests, 1);
+    });
+  }
+
+  for (final match in [
+    {...cityMatch(), 'latitude': null},
+    {...cityMatch(), 'latitude': '30.45'},
+    {...cityMatch(), 'latitude': 90.1},
+    {...cityMatch(), 'longitude': -180.1},
+    {...cityMatch(), 'name': ''},
+    {...cityMatch(), 'admin1': 42},
+  ]) {
+    test('invalid city response prevents a forecast request: $match', () async {
+      var requests = 0;
+      final weather = service((_) async {
+        requests++;
+        return weatherResponse({
+          'results': [match],
+        });
+      });
+      await expectLater(
+        weather.weatherForCity('City'),
+        weatherError('invalid data'),
+      );
+      expect(requests, 1);
+    });
+  }
+
+  test('city geocoding network errors surface to callers', () async {
+    final weather = service((_) async {
+      throw http.ClientException('Network unavailable');
+    });
+    await expectLater(
+      weather.weatherForCity('Paris'),
+      weatherError('Check your connection'),
+    );
+  });
+
+  test('city forecast errors surface after successful geocoding', () async {
+    final weather = service((request) async {
+      if (request.url.host == 'geocoding-api.open-meteo.com') {
+        return weatherResponse({
+          'results': [cityMatch()],
+        });
+      }
+      return http.Response('unavailable', 503);
+    });
+    await expectLater(
+      weather.weatherForCity('Baton Rouge'),
+      weatherError('unavailable'),
+    );
+  });
+
+  for (final data in [
+    forecast()..remove('current_units'),
+    {...forecast(), 'current_units': null},
+    {
+      ...forecast(),
+      'current_units': {
+        'temperature_2m': '°F',
+        'precipitation_probability': '%',
+      },
+    },
+    {
+      ...forecast(),
+      'current_units': {
+        'temperature_2m': '°C',
+        'precipitation_probability': 'mm',
+      },
+    },
+    {...forecast(), 'error': true},
+  ]) {
+    test('invalid units or provider error is rejected: $data', () async {
+      final weather = service((_) async => weatherResponse(data));
+      await expectLater(
+        weather.weatherAt(latitude: 0, longitude: 0),
+        weatherError('invalid data'),
+      );
+    });
+  }
+
   for (final body in [
     'not JSON',
     '[]',
@@ -206,11 +381,13 @@ void main() {
     jsonEncode(forecast(probability: '35')),
     jsonEncode(forecast(probability: -0.1)),
     jsonEncode(forecast(probability: 100.1)),
-    '{"current":{"temperature_2m":1e400,"precipitation_probability":20}}',
-    '{"current":{"temperature_2m":20,"precipitation_probability":1e400}}',
+    jsonEncode(forecast()).replaceFirst('22.5', '1e400'),
+    jsonEncode(forecast()).replaceFirst('35', '1e400'),
   ]) {
     test('invalid response $body is rejected', () async {
-      final weather = service((_) async => http.Response(body, 200));
+      final weather = service(
+        (_) async => http.Response(body, 200, headers: jsonHeaders),
+      );
       await expectLater(
         weather.weatherAt(latitude: 0, longitude: 0),
         weatherError('invalid data'),

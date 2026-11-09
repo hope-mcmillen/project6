@@ -22,12 +22,7 @@ class OpenMeteoWeatherService implements WeatherService {
     required double latitude,
     required double longitude,
   }) async {
-    if (!latitude.isFinite ||
-        !longitude.isFinite ||
-        latitude < -90 ||
-        latitude > 90 ||
-        longitude < -180 ||
-        longitude > 180) {
+    if (!_validCoordinates(latitude, longitude)) {
       throw const WeatherServiceException(
         'Choose a valid location for weather.',
       );
@@ -38,6 +33,36 @@ class OpenMeteoWeatherService implements WeatherService {
       'current': 'temperature_2m,precipitation_probability',
       'temperature_unit': 'celsius',
     });
+    return _getJson(uri, _decodeWeather);
+  }
+
+  @override
+  Future<WeatherSummary> weatherForCity(String city) async {
+    final search = city.trim();
+    if (search.runes.length < 2) {
+      throw const WeatherServiceException(
+        'Enter a city name with at least two characters.',
+      );
+    }
+    final uri = Uri.https('geocoding-api.open-meteo.com', '/v1/search', {
+      'name': search,
+      'count': '1',
+      'language': 'en',
+      'format': 'json',
+    });
+    final location = await _getJson(uri, _decodeCity);
+    final weather = await weatherAt(
+      latitude: location.latitude,
+      longitude: location.longitude,
+    );
+    return WeatherSummary(
+      temperatureC: weather.temperatureC,
+      rainChancePercent: weather.rainChancePercent,
+      locationLabel: location.label,
+    );
+  }
+
+  Future<T> _getJson<T>(Uri uri, T Function(dynamic) decode) async {
     final abort = Completer<void>();
     final request = http.AbortableRequest(
       'GET',
@@ -59,7 +84,11 @@ class OpenMeteoWeatherService implements WeatherService {
           'Weather is unavailable. Please try again.',
         );
       }
-      return _decodeWeather(jsonDecode(utf8.decode(response.bodyBytes)));
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      if (data is Map && data['error'] == true) {
+        throw const FormatException('The provider returned an error.');
+      }
+      return decode(data);
     } on TimeoutException {
       abort.complete();
       throw const WeatherServiceException(
@@ -82,13 +111,17 @@ class OpenMeteoWeatherService implements WeatherService {
 
 WeatherSummary _decodeWeather(dynamic data) {
   if (data is! Map<String, dynamic> ||
-      data['current'] is! Map<String, dynamic>) {
+      data['current'] is! Map<String, dynamic> ||
+      data['current_units'] is! Map<String, dynamic>) {
     throw const FormatException('Expected current weather.');
   }
   final current = data['current'] as Map<String, dynamic>;
+  final units = data['current_units'] as Map<String, dynamic>;
   final temperature = current['temperature_2m'];
   final probability = current['precipitation_probability'];
-  if (temperature is! num ||
+  if (units['temperature_2m'] != '°C' ||
+      units['precipitation_probability'] != '%' ||
+      temperature is! num ||
       !temperature.isFinite ||
       probability is! num ||
       !probability.isFinite ||
@@ -101,5 +134,51 @@ WeatherSummary _decodeWeather(dynamic data) {
   return WeatherSummary(
     temperatureC: temperature.toDouble(),
     rainChancePercent: probability.round(),
+  );
+}
+
+bool _validCoordinates(num latitude, num longitude) =>
+    latitude.isFinite &&
+    longitude.isFinite &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180;
+
+({double latitude, double longitude, String label}) _decodeCity(dynamic data) {
+  if (data is! Map<String, dynamic>) {
+    throw const FormatException('Expected city search results.');
+  }
+  final results = data['results'];
+  if (results == null || (results is List && results.isEmpty)) {
+    throw const WeatherServiceException(
+      'No city found. Try a city with its country or region.',
+    );
+  }
+  if (results is! List || results.first is! Map<String, dynamic>) {
+    throw const FormatException('Expected a city.');
+  }
+  final city = results.first as Map<String, dynamic>;
+  final latitude = city['latitude'];
+  final longitude = city['longitude'];
+  final name = city['name'];
+  final labels = [name, city['admin1'], city['country']];
+  if (latitude is! num ||
+      longitude is! num ||
+      !_validCoordinates(latitude, longitude) ||
+      name is! String ||
+      name.trim().isEmpty ||
+      labels.any((label) => label != null && label is! String)) {
+    throw const FormatException('Expected valid city coordinates and names.');
+  }
+  return (
+    latitude: latitude.toDouble(),
+    longitude: longitude.toDouble(),
+    label: labels
+        .whereType<String>()
+        .map((label) => label.trim())
+        .where((label) => label.isNotEmpty)
+        .toSet()
+        .join(', '),
   );
 }
