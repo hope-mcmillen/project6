@@ -105,6 +105,69 @@ AI Logic is active with Basic App Check enforcement. The console confirms both
 the approved local emulator debug credential and Kameron's Firebase Viewer role.
 No development credential or personal teammate email is committed to GitHub.
 
+## Android App Check developer setup — November 9
+
+`BackendServices.connect` already activates App Check after Firebase
+initialization and before Auth, Firestore and AI are used. The selected provider
+comes from the Flutter build mode. Calling `FirebaseBackend` at the app entry
+point supplies the shared services. [Flutter App Check setup](https://firebase.google.com/docs/app-check/flutter/default-providers).
+
+| Flutter mode | Provider in this app | Required configuration |
+| --- | --- | --- |
+| Debug | `AndroidDebugProvider` | Approved credential for that device/install |
+| Profile or release | `AndroidPlayIntegrityProvider` | Signing certificate and Play Integrity setup for the distribution channel |
+
+For a new teammate development device:
+
+1. Run `flutter run --debug -d DEVICE_ID` using this project's Android app.
+   Inspect the `DebugAppCheckProvider` message in local Logcat to obtain its
+   generated debug credential. Treat the raw logs as private.
+2. Obtain account-owner approval for the specific device and credential. In
+   Firebase project `fitcheck-ai-258e1`, open App Check, select the Android app
+   `com.example.project6`, then use its overflow menu's **Manage debug tokens**
+   action to register the approved credential.
+3. Run the checks below. Their setup forces an App Check token refresh before
+   making real AI requests, and the startup check confirms the shared backend.
+   Preserve the installation between runs with `--no-uninstall`.
+
+```sh
+flutter test integration_test/firebase_ai_test.dart -d DEVICE_ID --no-uninstall
+flutter test integration_test/firebase_startup_test.dart -d DEVICE_ID --no-uninstall
+```
+
+The existing local emulator is already approved and registered. Other devices
+need their own approval. Keep debug credentials, App Check tokens and raw logs
+out of GitHub and recordings. A cleared installation can generate a different
+credential. [Firebase debug-provider setup](https://firebase.google.com/docs/app-check/flutter/debug-provider).
+
+### Release handoff to Keith and the account owner
+
+`android/app/build.gradle.kts` currently assigns the debug signing configuration
+to release builds. Keith must establish the intended release signing identity
+and distribution channel. The SHA-256 fingerprint must match the certificate
+on the distributed app. A Google Play build uses its app-signing certificate.
+
+The account owner links the same Firebase project in Play Console's App
+integrity settings and registers the Android app's signing fingerprint for
+Firebase App Check's Play Integrity provider. Its app-recognition, licensing
+and device-integrity settings must match the chosen distribution channel.
+Firebase's default app-recognition requirement expects publication on Google
+Play, while its documented setup for distribution outside Play uses different
+verdict requirements. [Play Integrity setup and distribution settings](https://firebase.google.com/docs/app-check/android/play-integrity-provider).
+
+After those settings and signing are ready, verify the actual release on a
+physical Android device through token exchange and real AI requests. Release
+verification, the full feature flow and other team devices remain pending.
+The per-device daily request allowance is scheduled for November 10, with
+enforcement/rejection checks on November 11.
+
+November 9 recheck of the existing merged runtime on the approved emulator
+completed a forced App Check token refresh, valid clothing tags in 7,498 ms and
+two validated outfits in 2,284 ms. The real app entry point restored anonymous
+sign-in and exposed the shared repository to the current UI. These observations
+cover the debug emulator. Release/provider console configuration and physical
+phone acceptance remain pending.
+
 ## Remaining work
 
 - Configure release Play Integrity and authorize other team development devices

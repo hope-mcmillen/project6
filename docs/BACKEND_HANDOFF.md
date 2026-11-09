@@ -91,6 +91,9 @@ first user's sample record. See FIREBASE_STATUS.md for the remaining checks.
 - Debug tokens are credentials: keep them local, never commit/log them in a
   public artifact, and obtain approval before authorizing a token in the console.
 - The local daily AI request limit is still scheduled under M3-08.
+- Android debug-device registration and release signing/provider prerequisites
+  are documented in the App Check developer setup in
+  [FIREBASE_STATUS.md](FIREBASE_STATUS.md#android-app-check-developer-setup--november-9).
 - Kameron has the approved Firebase Viewer role. Hope and Keith's addresses
   and role approval are still pending. Billing remains off.
 - Only Android is registered; configure other platforms before enabling them.
