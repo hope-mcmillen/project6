@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'closet_test_helpers.dart';
+
 class FakeClosetPhotoPicker extends ClosetPhotoPicker {
   FakeClosetPhotoPicker(this.onPick);
 
@@ -15,9 +17,21 @@ class FakeClosetPhotoPicker extends ClosetPhotoPicker {
   Future<String?> pickAndSave(ImageSource source) => onPick(source);
 }
 
-Future<void> openScreen(WidgetTester tester, ClosetPhotoPicker picker) async {
-  await tester.pumpWidget(
-    MaterialApp(home: AddItemScreen(photoPicker: picker)),
+/// Tag review keeps a spinner running while it reads the photo, so wait for
+/// the page transition instead of for every animation to stop.
+Future<void> settleNavigation(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 500));
+}
+
+Future<void> openScreen(
+  WidgetTester tester,
+  ClosetPhotoPicker picker, {
+  VoidCallback? onSaved,
+}) {
+  return pumpClosetScreen(
+    tester,
+    AddItemScreen(photoPicker: picker, onSaved: onSaved),
   );
 }
 
@@ -35,7 +49,7 @@ void main() {
     );
 
     await tester.tap(find.text('Take photo'));
-    await tester.pumpAndSettle();
+    await settleNavigation(tester);
 
     expect(usedSource, ImageSource.camera);
     final review = tester.widget<TagReviewScreen>(find.byType(TagReviewScreen));
@@ -53,7 +67,7 @@ void main() {
     );
 
     await tester.tap(find.text('Choose from gallery'));
-    await tester.pumpAndSettle();
+    await settleNavigation(tester);
 
     expect(usedSource, ImageSource.gallery);
     final review = tester.widget<TagReviewScreen>(find.byType(TagReviewScreen));
@@ -64,7 +78,7 @@ void main() {
     await openScreen(tester, FakeClosetPhotoPicker((_) async => null));
 
     await tester.tap(find.text('Take photo'));
-    await tester.pumpAndSettle();
+    await settleNavigation(tester);
 
     expect(find.byType(TagReviewScreen), findsNothing);
     expect(find.text('Take photo'), findsOneWidget);
@@ -84,13 +98,13 @@ void main() {
     );
 
     await tester.tap(find.text('Take photo'));
-    await tester.pumpAndSettle();
+    await settleNavigation(tester);
 
     expect(find.byType(TagReviewScreen), findsNothing);
     expect(find.textContaining('Could not open the camera'), findsOneWidget);
 
     await tester.tap(find.text('Choose from gallery'));
-    await tester.pumpAndSettle();
+    await settleNavigation(tester);
 
     expect(find.byType(TagReviewScreen), findsOneWidget);
   });
@@ -125,5 +139,26 @@ void main() {
 
     expect(buttonWithin('Take photo').onPressed, isNotNull);
     expect(buttonWithin('Choose from gallery').onPressed, isNotNull);
+  });
+
+  testWidgets('tag review gets the saved callback', (tester) async {
+    void onSaved() {}
+    await openScreen(
+      tester,
+      FakeClosetPhotoPicker((_) async => savedPath),
+      onSaved: onSaved,
+    );
+
+    await tester.tap(find.text('Take photo'));
+    await settleNavigation(tester);
+
+    final review = tester.widget<TagReviewScreen>(find.byType(TagReviewScreen));
+    expect(review.onSaved, same(onSaved));
+  });
+
+  testWidgets('as a first screen it has no back button', (tester) async {
+    await openScreen(tester, FakeClosetPhotoPicker((_) async => null));
+    expect(find.byType(AppBar), findsNothing);
+    expect(find.textContaining('no people in the photo'), findsOneWidget);
   });
 }

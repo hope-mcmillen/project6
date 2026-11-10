@@ -19,54 +19,62 @@ as FR-1 and F-1 are defined in the requirements doc.
 
 ### P0: Friday MVP
 
+Phone checks for M1-01 to M1-05 happen together in M1-05, because the
+earlier tasks only ran against fakes.
+
 - [ ] **M1-01: Add items from the camera or gallery**
   - **Due:** Wed, Nov 4
   - **Covers:** FR-1
   - **Needs first:** M4-01
+  - **Status:** Code merged in PR #1. Waiting on the phone check in M1-05.
   - **What to do:** Replace the placeholder buttons with `image_picker` so a user can take or choose a clothing photo. Save a copy on the phone with `path_provider`, then pass its file path to tag review. The gallery must still work if camera access is denied.
   - **Where:** `lib/features/closet/add_item_screen.dart`
   - **Done when:** A real photo appears on tag review, its file is still on the phone after a restart, and denying camera access leaves the gallery usable.
-- [ ] **M1-02: Connect tag review to the fake AI service and make tags editable**
+- [ ] **M1-02: Make tag review editable, with AI tags when available**
   - **Due:** Wed, Nov 4
   - **Covers:** FR-2, FR-3
   - **Needs first:** M3-02
-  - **What to do:** When the screen opens, call the fake `AiService`, show a loading state, and fill in category, color, pattern, formality, and season. Let the user change any field, then save the item through the fake closet repository. If the call fails, show empty fields for manual entry.
+  - **Status:** Code merged in PR #5 and moved onto Member 3's shared services in M1-05. Waiting on the phone check in M1-05.
+  - **What to do:** When the screen opens, read the photo, call `AiService.tagClothing`, show a loading state, and fill in category, color, pattern, formality, and season. Let the user change any field, then save the item. If the AI call fails, show its message and empty fields for manual entry.
   - **Where:** `lib/features/closet/tag_review_screen.dart`
-  - **Done when:** Fake tags appear, every tag can be edited, the saved item keeps the user's values, and a simulated failure opens manual entry.
+  - **Done when:** Suggested tags appear, every tag can be edited, the saved item keeps the user's values, and a failed AI call opens manual entry.
 - [ ] **M1-03: Build the real closet screen with browse and delete**
   - **Due:** Wed, Nov 4
   - **Covers:** FR-4
   - **Needs first:** M3-02
-  - **What to do:** Replace `_sampleItems` with items from the closet repository, and show each saved photo instead of the placeholder. Tapping an item opens its details, and deleting it removes both its record and its photo file. Filters and tag editing wait until M1-06.
+  - **Status:** Code merged in PR #5. Category filters were added early in M1-05 so the new Wardrobe tab kept the filters from Member 2's design. Waiting on the phone check in M1-05.
+  - **What to do:** Show items from the closet repository with their saved photos, newest first. Tapping an item opens its details. Deleting it removes the Firestore record, and the photo file once Firestore confirms the delete.
   - **Where:** `lib/features/closet/closet_screen.dart`, `lib/features/closet/item_detail_screen.dart`
   - **Done when:** New items appear in the grid with their photos and tags, and a deleted item and its photo file are gone.
 - [ ] **M1-04: Add a sample closet that loads with one tap**
   - **Due:** Wed, Nov 4
   - **Covers:** FR-10
   - **Needs first:** M3-02
-  - **What to do:** Add 15-20 clothing photos the team owns or may reuse, with tags already written, and include shoes plus tops and bottoms. Show a load button when the closet is empty. Member 4 can connect the existing Settings option later. Clearing the sample waits until M1-06.
-  - **Where:** `assets/sample_closet/`, `lib/features/closet/`
+  - **Status:** Code merged in PR #5 with 18 drawn clothing images the team made. Real clothing photos can replace them under the same file names. Waiting on the phone check in M1-05.
+  - **What to do:** Bundle 15-20 clothing images with tags already written, including tops, bottoms, and shoes. Show a load button when the closet is empty. Loading copies the images onto the phone and saves each item with `isSample: true`. Member 4 can reuse `SampleClosetLoader` for the Settings option.
+  - **Where:** `assets/sample_closet/`, `lib/features/closet/sample_closet.dart`
   - **Done when:** One tap on an empty closet fills it with enough items for the outfit flow, with no AI calls.
 - [ ] **M1-05: Connect the closet to Firestore and live AI tagging**
   - **Due:** Thu, Nov 5
   - **Covers:** FR-2, FR-11
-  - **Needs first:** M3-04, M3-05
-  - **What to do:** Swap the fakes for Member 3's real `AiService` and closet repository. Test with clothing-only photos, because the Gemini free tier must not receive photos of people.
-  - **Where:** `lib/features/closet/`
-  - **Done when:** A new clothing photo gets real AI tags, the item appears in the Firebase console, and it reloads after a restart.
+  - **Needs first:** M3-04, M3-05 (both merged in PR #2)
+  - **Status:** Code on branch `m1-05-firebase-closet`. The closet screens use the shared `BackendScope` services, and the Wardrobe and Add item tabs show them. The phone check is still to do.
+  - **What to do:** Use Member 3's `ClothingItem`, `ClosetRepository`, and `AiService` from `BackendScope`, and store canonical lowercase categories. Do not wait for Firestore to confirm a save or delete, because offline writes wait until the phone reconnects; show a message if a write fails later. Then install a debug build on a real Android phone. Ask Member 3 to register that phone's App Check debug token in the Firebase console first, or AI tagging fails and only manual entry works. Test with clothing-only photos, because the Gemini free tier must not receive photos of people.
+  - **Where:** `lib/features/closet/`, `lib/app/app_shell.dart` (Wardrobe and Add item tabs), `lib/main.dart`
+  - **Done when:** On a real phone, a new clothing photo gets real AI tags, the item shows under `users/{uid}/items` in the Firebase console (your Viewer role is enough), it reloads after a restart, and loading the sample closet and deleting an item both reach Firestore.
 
 ### P1: Next
 
-- [ ] **M1-06: Finish closet filters, editing, failure states, and tests**
+- [ ] **M1-06: Finish closet editing, clearing, and failure states**
   - **Covers:** FR-3, FR-4, FR-9, FR-10
-  - **Needs first:** M4-04
-  - **What to do:** Finish the work trimmed for the MVP: category, color, and season filters, editing saved tags, and clearing the sample closet. Use Member 4's shared widgets for errors and retries, and add tests under `test/features/closet/`.
+  - **Needs first:** M1-05, M4-04
+  - **What to do:** Category filters are done. Still to do: edit saved tags with `ClothingItem.copyWith` and `saveItem`; add a "Clear sample closet" option that deletes every `isSample` item and its photo; delete the copied photo when the user backs out of tag review without saving; and add color and season filters. Use Member 4's shared widgets for errors and retries, and add tests under `test/features/closet/`.
   - **Where:** `lib/features/closet/`, `test/features/closet/`
-  - **Done when:** Filters work offline, saved tags can be changed, the sample closet clears with one tap, and closet failures show a message instead of crashing.
+  - **Done when:** Filters work offline, saved tags can be changed, the sample closet clears with one tap, an abandoned photo is not left on the phone, and closet failures show a message instead of crashing.
 - [ ] **M1-07: Write the demo script**
   - **Covers:** Demo video
   - **Needs first:** None
-  - **What to do:** Write the demo video script: who speaks, what each member shows, and the order of the main flow and Fit Check. Include the proof the course asks for, and check it against any required length.
+  - **What to do:** Write the demo video script: who speaks, what each member shows, and the order of the main flow and Fit Check. Include the proof the course asks for, such as an item appearing in the Firebase console as the server component, and check it against any required length.
   - **Where:** `docs/demo-script.md`
   - **Done when:** All 4 members have reviewed the script, and each has a segment.
 - [ ] **M1-09: Run an accessibility pass on closet screens**
@@ -77,8 +85,8 @@ as FR-1 and F-1 are defined in the requirements doc.
   - **Done when:** A screen reader can describe each closet item and control, and no closet text is cut off at a large text size.
 - [ ] **M1-10: Record the closet demo segment**
   - **Covers:** Demo video
-  - **Needs first:** M1-07
-  - **What to do:** Record your section of the script on a real phone: adding an item, reviewing AI tags, and browsing the closet. Use clothing-only photos.
+  - **Needs first:** M1-07, M1-05
+  - **What to do:** Record your section of the script on a real phone: adding an item, reviewing AI tags, and browsing the closet. Use clothing-only photos, and keep App Check debug tokens and account details off screen.
   - **Where:** Shared with Member 4 for editing
   - **Done when:** Member 4 has the recording, and it follows the script.
 
@@ -86,8 +94,8 @@ as FR-1 and F-1 are defined in the requirements doc.
 
 - [ ] **M1-08: Add laundry status**
   - **Covers:** Could-have feature
-  - **Needs first:** M1-03
-  - **What to do:** Let users mark an item as in the laundry, show that status in the closet, and leave it out of outfit requests. Coordinate the Firestore field with Member 3.
+  - **Needs first:** M1-05
+  - **What to do:** The shared model already has `inLaundry`, and outfit requests already skip those items. Add a toggle on the item details screen that saves `item.copyWith(inLaundry: ...)`, and show the status on the closet card.
   - **Where:** `lib/features/closet/`
   - **Done when:** An item marked as in the laundry is visibly marked and is not suggested in outfits.
 

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../core/logging/app_log.dart';
+import '../features/closet/add_item_screen.dart';
+import '../features/closet/closet_screen.dart';
 import 'app.dart';
 
 class Garment {
@@ -17,9 +20,11 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
+  static const tabNames = ['Today', 'Wardrobe', 'Add item', 'Outfits'];
+
   int tab = 0;
-  String filter = 'All', occasion = 'Everyday', style = 'Casual';
-  bool preview = false, saved = false;
+  String occasion = 'Everyday', style = 'Casual';
+  bool saved = false;
   final input = TextEditingController();
   final chatScroll = ScrollController();
   final messages = <(String, bool)>[];
@@ -75,6 +80,16 @@ class _AppShellState extends State<AppShell> {
     super.dispose();
   }
 
+  /// Switches tabs and logs where the user went and how they got there.
+  void goToTab(int value, String how) {
+    if (value == tab) {
+      AppLog.nav('Already on the ${tabNames[tab]} tab ($how)');
+      return;
+    }
+    AppLog.nav('Tab ${tabNames[tab]} -> ${tabNames[value]} ($how)');
+    setState(() => tab = value);
+  }
+
   void notice(String text) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 
@@ -110,7 +125,7 @@ class _AppShellState extends State<AppShell> {
                     const Spacer(),
                     IconButton(
                       tooltip: 'Home',
-                      onPressed: () => setState(() => tab = 0),
+                      onPressed: () => goToTab(0, 'home button'),
                       icon: const Icon(Icons.home_outlined),
                     ),
                   ],
@@ -131,7 +146,7 @@ class _AppShellState extends State<AppShell> {
     ),
     bottomNavigationBar: NavigationBar(
       selectedIndex: tab,
-      onDestinationSelected: (value) => setState(() => tab = value),
+      onDestinationSelected: (value) => goToTab(value, 'bottom bar'),
       backgroundColor: Colors.white,
       indicatorColor: const Color(0xFFE9DDFB),
       destinations: const [
@@ -260,7 +275,10 @@ class _AppShellState extends State<AppShell> {
                     (s) => ChoiceChip(
                       label: Text(s),
                       selected: occasion == s,
-                      onSelected: (_) => setState(() => occasion = s),
+                      onSelected: (_) {
+                        AppLog.tap('Occasion: $s', screen: 'Today');
+                        setState(() => occasion = s);
+                      },
                     ),
                   )
                   .toList(),
@@ -282,7 +300,10 @@ class _AppShellState extends State<AppShell> {
                     (s) => ChoiceChip(
                       label: Text(s),
                       selected: style == s,
-                      onSelected: (_) => setState(() => style = s),
+                      onSelected: (_) {
+                        AppLog.tap('Mood: $s', screen: 'Today');
+                        setState(() => style = s);
+                      },
                     ),
                   )
                   .toList(),
@@ -292,7 +313,10 @@ class _AppShellState extends State<AppShell> {
       ),
       const SizedBox(height: 18),
       FilledButton.icon(
-        onPressed: () => setState(() => tab = 3),
+        onPressed: () {
+          AppLog.tap('Put a look together', screen: 'Today');
+          goToTab(3, '$occasion, $style');
+        },
         icon: const Icon(Icons.auto_awesome),
         label: const Text('Put a look together'),
       ),
@@ -314,101 +338,9 @@ class _AppShellState extends State<AppShell> {
     ],
   );
 
-  Widget wardrobe() {
-    final visible = clothes
-        .where((item) => filter == 'All' || item.category == filter)
-        .toList();
-    return ListView(
-      key: const PageStorageKey('wardrobe'),
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-      children: [
-        heading(
-          'THE CLOSET',
-          'Your wardrobe',
-          '${clothes.length} pieces to make your own. Tap a piece to see its story.',
-        ),
-        Wrap(
-          spacing: 8,
-          children: ['All', 'Tops', 'Bottoms', 'Shoes']
-              .map(
-                (s) => ChoiceChip(
-                  label: Text(s),
-                  selected: filter == s,
-                  onSelected: (_) => setState(() => filter = s),
-                ),
-              )
-              .toList(),
-        ),
-        const SizedBox(height: 18),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: visible.length,
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 240,
-            mainAxisExtent: 238,
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 14,
-          ),
-          itemBuilder: (context, i) {
-            final item = visible[i];
-            return InkWell(
-              borderRadius: BorderRadius.circular(22),
-              onTap: () => detail(item),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: const Color(0xFFEEE8F4)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: Center(child: garment(item, 90))),
-                    Text(
-                      item.name,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      item.days == 0
-                          ? 'Worn today'
-                          : 'Last worn ${item.days} ${item.days == 1 ? 'day' : 'days'} ago',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: item.days >= 30
-                            ? const Color(0xFFB0683C)
-                            : Colors.black54,
-                      ),
-                    ),
-                    if (item.days >= 30)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 5),
-                        child: Text(
-                          'Time for a comeback',
-                          style: TextStyle(
-                            color: plum,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 18),
-        OutlinedButton.icon(
-          onPressed: () => setState(() => tab = 2),
-          icon: const Icon(Icons.add),
-          label: const Text('Add a new piece'),
-        ),
-      ],
-    );
-  }
+  // Member 1's closet, backed by Firestore and the shared AI service.
+  Widget wardrobe() =>
+      ClosetScreen(onAddItem: () => goToTab(2, 'closet add button'));
 
   Widget garment(Garment item, double size) => Container(
     width: size + 28,
@@ -420,138 +352,18 @@ class _AppShellState extends State<AppShell> {
     child: Icon(item.icon, size: size, color: item.color),
   );
 
-  void detail(Garment item) => showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    builder: (context) => Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          garment(item, 100),
-          const SizedBox(height: 16),
-          Text(
-            item.name,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            item.days == 0 ? 'Worn today' : 'Last worn ${item.days} days ago',
-          ),
-          const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: () {
-              setState(() => item.days = 0);
-              Navigator.pop(context);
-              notice('Marked as worn today.');
-            },
-            icon: const Icon(Icons.check),
-            label: const Text('I wore this today'),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() => clothes.remove(item));
-              Navigator.pop(context);
-              notice('Piece removed from your demo wardrobe.');
-            },
-            child: const Text('Remove from wardrobe'),
-          ),
-        ],
-      ),
-    ),
-  );
-
-  Widget capture() => ListView(
-    key: const PageStorageKey('capture'),
-    padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-    children: [
-      heading(
-        'A LITTLE CLOSET REFRESH',
-        'Meet your next staple.',
-        'Give each piece a place in your wardrobe.',
-      ),
-      card(
-        Column(
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.crop_free, color: plum),
-                SizedBox(width: 10),
-                Text(
-                  'Clothing preview',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-            const SizedBox(height: 28),
-            SizedBox(
-              height: 200,
-              child: Center(
-                child: preview
-                    ? garment(clothes.first, 130)
-                    : const Icon(
-                        Icons.add_photo_alternate_outlined,
-                        size: 90,
-                        color: Color(0xFFBEACD8),
-                      ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              preview ? 'Daisy tee' : 'One piece. A world of possibilities.',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Use a clear photo with the whole item in view.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.black54, height: 1.5),
-            ),
-            const SizedBox(height: 24),
-            OutlinedButton.icon(
-              onPressed: () => setState(() => preview = true),
-              icon: const Icon(Icons.photo_library_outlined),
-              label: const Text('Try a sample photo'),
-            ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 18),
-      FilledButton.icon(
-        onPressed: preview
-            ? () {
-                setState(() {
-                  clothes.add(
-                    Garment(
-                      'New daisy tee',
-                      'Tops',
-                      const Color(0xFFE59AB6),
-                      0,
-                      Icons.local_florist_outlined,
-                    ),
-                  );
-                  preview = false;
-                  filter = 'All';
-                  tab = 1;
-                });
-                notice('Sample piece added.');
-              }
-            : null,
-        icon: const Icon(Icons.add),
-        label: const Text('Add to wardrobe'),
-      ),
-      const SizedBox(height: 16),
-      const Text(
-        'UI preview · Camera and photo uploads are coming later.\nChanges are kept only during this session.',
-        textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.black54, fontSize: 12, height: 1.6),
-      ),
-    ],
-  );
+  Widget capture() => AddItemScreen(onSaved: () => goToTab(1, 'item saved'));
 
   void send([String? text]) {
     final value = (text ?? input.text).trim();
-    if (value.isEmpty) return;
+    if (value.isEmpty) {
+      AppLog.ui('Stylist chat: ignored an empty message');
+      return;
+    }
+    AppLog.ui(
+      'Stylist chat: sent a ${value.length}-character message '
+      '(demo reply, not the AI)',
+    );
     setState(() {
       messages.add((value, true));
       messages.add((
@@ -622,7 +434,10 @@ class _AppShellState extends State<AppShell> {
                                 s,
                                 style: const TextStyle(fontSize: 12),
                               ),
-                              onPressed: () => send(s),
+                              onPressed: () {
+                                AppLog.tap('Suggestion: $s', screen: 'Outfits');
+                                send(s);
+                              },
                             ),
                           )
                           .toList(),
@@ -693,6 +508,10 @@ class _AppShellState extends State<AppShell> {
                       onPressed: saved
                           ? null
                           : () {
+                              AppLog.tap(
+                                'Choose this outfit',
+                                screen: 'Outfits',
+                              );
                               setState(() => saved = true);
                               notice('Outfit selected for this session.');
                             },
@@ -702,9 +521,12 @@ class _AppShellState extends State<AppShell> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () => notice(
-                        'More outfit combinations will be available when the stylist is connected.',
-                      ),
+                      onPressed: () {
+                        AppLog.tap('Try a different outfit', screen: 'Outfits');
+                        notice(
+                          'More outfit combinations will be available when the stylist is connected.',
+                        );
+                      },
                       child: const Text('Try a different outfit'),
                     ),
                   ],
@@ -718,13 +540,19 @@ class _AppShellState extends State<AppShell> {
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
         child: TextField(
           controller: input,
-          onSubmitted: (_) => send(),
+          onSubmitted: (_) {
+            AppLog.tap('Keyboard send', screen: 'Outfits');
+            send();
+          },
           decoration: InputDecoration(
             hintText: 'What do you feel like wearing?',
             hintStyle: const TextStyle(fontSize: 13),
             suffixIcon: IconButton(
               tooltip: 'Send message',
-              onPressed: send,
+              onPressed: () {
+                AppLog.tap('Send message', screen: 'Outfits');
+                send();
+              },
               icon: const Icon(Icons.arrow_upward, color: plum),
             ),
           ),

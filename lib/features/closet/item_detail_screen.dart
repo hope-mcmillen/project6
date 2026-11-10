@@ -1,12 +1,16 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../core/data/models.dart';
+import '../../core/data/repositories.dart';
+import '../../core/logging/app_log.dart';
 import '../../core/widgets/not_built.dart';
+import 'closet_heading.dart';
 import 'closet_photo.dart';
 import 'closet_photo_picker.dart';
-import 'closet_repository.dart';
-import 'clothing_item.dart';
+import 'closet_services.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   const ItemDetailScreen({
@@ -26,22 +30,39 @@ class ItemDetailScreen extends StatefulWidget {
 
 class _ItemDetailScreenState extends State<ItemDetailScreen> {
   late final ClosetRepository _repository =
-      widget.repository ?? defaultClosetRepository;
-  bool _isDeleting = false;
+      widget.repository ?? closetServices(context).closet;
+
+  Future<void> _removePhoto() async {
+    try {
+      await widget.deletePhoto(widget.item.photoPath);
+      AppLog.ui('Item Detail: deleted the photo file for ${widget.item.id}');
+    } on FileSystemException catch (error) {
+      // The item is already gone, so a leftover file should not block the user.
+      AppLog.ui('Item Detail: could not delete the photo file: $error');
+    }
+  }
 
   Future<void> _confirmAndDelete() async {
+    AppLog.tap('Delete item', screen: 'Item Detail');
     final confirmed = await showDialog<bool>(
       context: context,
+      routeSettings: const RouteSettings(name: '/delete-item-dialog'),
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete this item?'),
         content: const Text('This removes the item and its photo.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
+            onPressed: () {
+              AppLog.tap('Cancel', screen: 'Delete item dialog');
+              Navigator.of(dialogContext).pop(false);
+            },
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
+            onPressed: () {
+              AppLog.tap('Delete', screen: 'Delete item dialog');
+              Navigator.of(dialogContext).pop(true);
+            },
             child: const Text('Delete'),
           ),
         ],
@@ -49,65 +70,73 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     );
     if (confirmed != true || !mounted) return;
 
-    setState(() => _isDeleting = true);
     final messenger = ScaffoldMessenger.of(context);
-    try {
-      await _repository.deleteItem(widget.item.id);
-    } on Exception {
-      if (!mounted) return;
-      setState(() => _isDeleting = false);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Could not delete this item. Try again.')),
-      );
-      return;
-    }
-
-    try {
-      await widget.deletePhoto(widget.item.photoPath);
-    } on FileSystemException catch (error) {
-      // The item is already gone, so a leftover file should not block the user.
-      debugPrint('Could not delete closet photo: $error');
-    }
-    if (!mounted) return;
+    // Firestore removes the item from the closet right away but may not confirm
+    // until the phone is online. The photo goes once the delete is confirmed.
+    unawaited(
+      _repository
+          .deleteItem(widget.item.id)
+          .then(
+            (_) => _removePhoto(),
+            onError: (Object _) => messenger
+              ..clearSnackBars()
+              ..showSnackBar(
+                const SnackBar(
+                  content: Text('Could not delete that item. Try again.'),
+                ),
+              ),
+          ),
+    );
     messenger.showSnackBar(const SnackBar(content: Text('Item deleted')));
     Navigator.of(context).pop();
   }
 
   Widget _buildTag(String label, String value) {
     return ListTile(
+      contentPadding: EdgeInsets.zero,
       title: Text(label),
-      subtitle: Text(value.isEmpty ? 'Not set' : value),
+      subtitle: Text(value.isEmpty ? 'Not set' : capitalized(value)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
+    final name = itemName(item);
     return Scaffold(
-      appBar: AppBar(title: Text(item.name)),
+      appBar: AppBar(title: Text(name)),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         children: [
           ClosetPhoto(
             photoPath: item.photoPath,
             height: 240,
             fit: BoxFit.contain,
-            semanticLabel: 'Photo of ${item.name}',
+            semanticLabel: 'Photo of $name',
           ),
-          const SizedBox(height: 8),
-          _buildTag('Category', item.tags.category),
-          _buildTag('Color', item.tags.color),
-          _buildTag('Pattern', item.tags.pattern),
-          _buildTag('Formality', item.tags.formality),
-          _buildTag('Season', item.tags.season),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
+          ClosetCard(
+            child: Column(
+              children: [
+                _buildTag('Category', categoryLabel(item.tags.category)),
+                _buildTag('Color', item.tags.color),
+                _buildTag('Pattern', item.tags.pattern),
+                _buildTag('Formality', item.tags.formality),
+                _buildTag('Season', item.tags.season),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
           OutlinedButton(
-            onPressed: () => showNotBuilt(context, 'FR-3 edit saved tags'),
+            onPressed: () {
+              AppLog.tap('Edit tags (not built yet)', screen: 'Item Detail');
+              showNotBuilt(context, 'FR-3 edit saved tags');
+            },
             child: const Text('Edit tags'),
           ),
           const SizedBox(height: 8),
           TextButton(
-            onPressed: _isDeleting ? null : _confirmAndDelete,
+            onPressed: _confirmAndDelete,
             child: const Text('Delete item'),
           ),
         ],

@@ -1,58 +1,83 @@
-import 'package:fitcheck_ai/features/closet/closet_repository.dart';
-import 'package:fitcheck_ai/features/closet/clothing_item.dart';
-import 'package:fitcheck_ai/features/closet/clothing_tagger.dart';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:fitcheck_ai/core/ai/ai_service.dart';
+import 'package:fitcheck_ai/core/ai/fake_ai_service.dart';
+import 'package:fitcheck_ai/core/data/backend_services.dart';
+import 'package:fitcheck_ai/core/data/fake_repositories.dart';
+import 'package:fitcheck_ai/core/data/models.dart';
 import 'package:fitcheck_ai/features/closet/tag_review_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class StubTagger implements ClothingTagger {
-  StubTagger(this.onSuggest);
+import 'closet_test_helpers.dart';
 
-  final Future<ClothingTags> Function() onSuggest;
+class StubAi implements AiService {
+  StubAi(this.onTag);
+
+  final Future<ClothingTags> Function() onTag;
+  Uint8List? lastPhoto;
 
   @override
-  Future<ClothingTags> suggestTags(String photoPath) => onSuggest();
+  Future<ClothingTags> tagClothing(Uint8List photoBytes) {
+    lastPhoto = photoBytes;
+    return onTag();
+  }
+
+  @override
+  Future<List<Outfit>> generateOutfits(OutfitRequest request) =>
+      throw UnimplementedError();
 }
 
 const suggestedTags = ClothingTags(
-  category: 'Top',
-  color: 'Blue',
-  pattern: 'Solid',
-  formality: 'Casual',
-  season: 'All year',
+  category: 'top',
+  color: 'blue',
+  pattern: 'solid',
+  formality: 'casual',
+  season: 'all year',
 );
 
+final photoBytes = Uint8List.fromList([1, 2, 3]);
+
 void main() {
-  late InMemoryClosetRepository repository;
+  late TestClosetRepository repository;
 
-  setUp(() => repository = InMemoryClosetRepository());
+  setUp(() => repository = TestClosetRepository());
 
-  Future<void> openScreen(WidgetTester tester, ClothingTagger tagger) async {
-    tester.view.physicalSize = const Size(600, 1600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: TagReviewScreen(
-          photoPath: '/photos/shirt.jpg',
-          repository: repository,
-          tagger: tagger,
-        ),
+  Future<void> openScreen(
+    WidgetTester tester,
+    AiService ai, {
+    ReadPhoto? readPhoto,
+    VoidCallback? onSaved,
+  }) {
+    return pumpClosetScreen(
+      tester,
+      TagReviewScreen(
+        photoPath: '/photos/shirt.jpg',
+        repository: repository,
+        ai: ai,
+        readPhoto: readPhoto ?? (_) async => photoBytes,
+        onSaved: onSaved,
       ),
     );
   }
 
   Finder field(String label) => find.widgetWithText(TextFormField, label);
 
-  testWidgets('shows loading, then fills in the suggested tags', (
+  Future<void> chooseCategory(WidgetTester tester, String label) async {
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(label).last);
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('sends the photo to the AI and fills in its tags', (
     tester,
   ) async {
-    await openScreen(
-      tester,
-      StubTagger(
-        () => Future.delayed(const Duration(seconds: 1), () => suggestedTags),
-      ),
+    final ai = StubAi(
+      () => Future.delayed(const Duration(seconds: 1), () => suggestedTags),
     );
+    await openScreen(tester, ai);
     await tester.pump();
 
     expect(find.text('Suggesting tags...'), findsOneWidget);
@@ -61,62 +86,75 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pump();
 
+    expect(ai.lastPhoto, photoBytes);
     expect(find.text('Top'), findsOneWidget);
-    expect(find.text('Blue'), findsOneWidget);
-    expect(find.text('Solid'), findsOneWidget);
-    expect(find.text('Casual'), findsOneWidget);
-    expect(find.text('All year'), findsOneWidget);
+    expect(find.text('blue'), findsOneWidget);
+    expect(find.text('solid'), findsOneWidget);
+    expect(find.text('casual'), findsOneWidget);
+    expect(find.text('all year'), findsOneWidget);
   });
 
   testWidgets('saves the values the user changed', (tester) async {
-    await openScreen(tester, StubTagger(() async => suggestedTags));
+    var savedCalls = 0;
+    await openScreen(
+      tester,
+      StubAi(() async => suggestedTags),
+      onSaved: () => savedCalls++,
+    );
     await tester.pumpAndSettle();
 
-    await tester.enterText(field('Color'), 'Green');
+    await tester.enterText(field('Color'), 'Green ');
     await tester.enterText(field('Pattern'), 'Striped');
-    await tester.tap(find.byType(DropdownButtonFormField<String>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Outerwear').last);
-    await tester.pumpAndSettle();
+    await chooseCategory(tester, 'Outerwear');
     await tester.tap(find.text('Save to closet'));
     await tester.pumpAndSettle();
 
     final saved = repository.items.single;
     expect(saved.photoPath, '/photos/shirt.jpg');
-    expect(saved.tags.category, 'Outerwear');
+    expect(saved.tags.category, 'outerwear');
     expect(saved.tags.color, 'Green');
     expect(saved.tags.pattern, 'Striped');
-    expect(saved.tags.formality, 'Casual');
-    expect(saved.tags.season, 'All year');
+    expect(saved.tags.formality, 'casual');
+    expect(saved.tags.season, 'all year');
+    expect(saved.isSample, isFalse);
+    expect(savedCalls, 1);
     expect(find.text('Added to your closet'), findsOneWidget);
   });
 
-  testWidgets('a failed suggestion opens empty fields to fill in', (
+  testWidgets('an AI failure shows its message and opens manual entry', (
     tester,
   ) async {
-    await openScreen(tester, StubTagger(() async => throw Exception('down')));
+    await openScreen(tester, FakeAiService(failTagging: true));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('could not suggest tags'), findsOneWidget);
-    expect(find.text('Blue'), findsNothing);
+    expect(find.textContaining('Tags unavailable.'), findsOneWidget);
+    expect(find.text('blue'), findsNothing);
 
     await tester.tap(find.text('Save to closet'));
     await tester.pumpAndSettle();
     expect(find.text('Choose a category'), findsOneWidget);
     expect(repository.items, isEmpty);
 
-    await tester.tap(find.byType(DropdownButtonFormField<String>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Shoes').last);
-    await tester.pumpAndSettle();
+    await chooseCategory(tester, 'Shoes');
     await tester.enterText(field('Color'), 'Black');
     await tester.tap(find.text('Save to closet'));
     await tester.pumpAndSettle();
 
     final saved = repository.items.single;
-    expect(saved.tags.category, 'Shoes');
+    expect(saved.tags.category, 'shoes');
     expect(saved.tags.color, 'Black');
-    expect(saved.name, 'Black Shoes');
+  });
+
+  testWidgets('an unreadable photo also opens manual entry', (tester) async {
+    await openScreen(
+      tester,
+      StubAi(() async => suggestedTags),
+      readPhoto: (_) async => throw const FileSystemException('gone'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('could not suggest tags'), findsOneWidget);
+    expect(find.text('Save to closet'), findsOneWidget);
   });
 
   testWidgets('an unknown suggested category must be chosen by hand', (
@@ -124,7 +162,15 @@ void main() {
   ) async {
     await openScreen(
       tester,
-      StubTagger(() async => const ClothingTags(category: 'Spaceship')),
+      StubAi(
+        () async => const ClothingTags(
+          category: 'spaceship',
+          color: '',
+          pattern: '',
+          formality: '',
+          season: '',
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -133,5 +179,45 @@ void main() {
 
     expect(find.text('Choose a category'), findsOneWidget);
     expect(repository.items, isEmpty);
+  });
+
+  testWidgets('a rejected save tells the user', (tester) async {
+    repository.failWrites = true;
+    await openScreen(tester, StubAi(() async => suggestedTags));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Save to closet'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Could not save that item. Try again.'), findsOneWidget);
+  });
+
+  testWidgets('without injected services it uses the app backend', (
+    tester,
+  ) async {
+    final closet = FakeClosetRepository();
+    final ai = FakeAiService();
+    await pumpClosetScreen(
+      tester,
+      TagReviewScreen(
+        photoPath: '/photos/shirt.jpg',
+        readPhoto: (_) async => photoBytes,
+      ),
+      services: BackendServices(
+        closet: closet,
+        outfits: FakeOutfitRepository(),
+        profile: FakeProfileRepository(),
+        wearLogs: FakeWearLogRepository(),
+        ai: ai,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(ai.taggingCalls, 1);
+
+    await tester.tap(find.text('Save to closet'));
+    await tester.pumpAndSettle();
+
+    final items = await tester.runAsync(closet.getItems);
+    expect(items!.single.tags.category, 'top');
   });
 }

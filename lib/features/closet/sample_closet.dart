@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../../core/data/models.dart';
+import '../../core/data/repositories.dart';
 import 'closet_photo_picker.dart';
-import 'closet_repository.dart';
-import 'clothing_item.dart';
 
 class SampleClothing {
   const SampleClothing(this.imageName, this.tags);
@@ -16,201 +16,201 @@ class SampleClothing {
   String get assetPath => 'assets/sample_closet/$imageName.png';
 }
 
-const sampleCloset = [
+/// Sample pieces with tags already written, so loading them needs no AI call.
+const sampleClothes = [
   SampleClothing(
     'blue_tee',
     ClothingTags(
-      category: 'Top',
-      color: 'Blue',
-      pattern: 'Solid',
-      formality: 'Casual',
-      season: 'Summer',
+      category: 'top',
+      color: 'blue',
+      pattern: 'solid',
+      formality: 'casual',
+      season: 'summer',
     ),
   ),
   SampleClothing(
     'white_tee',
     ClothingTags(
-      category: 'Top',
-      color: 'White',
-      pattern: 'Solid',
-      formality: 'Casual',
-      season: 'All year',
+      category: 'top',
+      color: 'white',
+      pattern: 'solid',
+      formality: 'casual',
+      season: 'all year',
     ),
   ),
   SampleClothing(
     'navy_striped_tee',
     ClothingTags(
-      category: 'Top',
-      color: 'Navy',
-      pattern: 'Striped',
-      formality: 'Casual',
-      season: 'Spring',
+      category: 'top',
+      color: 'navy',
+      pattern: 'striped',
+      formality: 'casual',
+      season: 'spring',
     ),
   ),
   SampleClothing(
     'red_tee',
     ClothingTags(
-      category: 'Top',
-      color: 'Red',
-      pattern: 'Solid',
-      formality: 'Casual',
-      season: 'Summer',
+      category: 'top',
+      color: 'red',
+      pattern: 'solid',
+      formality: 'casual',
+      season: 'summer',
     ),
   ),
   SampleClothing(
     'light_blue_shirt',
     ClothingTags(
-      category: 'Top',
-      color: 'Light blue',
-      pattern: 'Solid',
-      formality: 'Business casual',
-      season: 'All year',
+      category: 'top',
+      color: 'light blue',
+      pattern: 'solid',
+      formality: 'business casual',
+      season: 'all year',
     ),
   ),
   SampleClothing(
     'gray_hoodie',
     ClothingTags(
-      category: 'Top',
-      color: 'Gray',
-      pattern: 'Solid',
-      formality: 'Casual',
-      season: 'Fall',
+      category: 'top',
+      color: 'gray',
+      pattern: 'solid',
+      formality: 'casual',
+      season: 'fall',
     ),
   ),
   SampleClothing(
     'black_jeans',
     ClothingTags(
-      category: 'Bottom',
-      color: 'Black',
-      pattern: 'Solid',
-      formality: 'Casual',
-      season: 'All year',
+      category: 'bottom',
+      color: 'black',
+      pattern: 'solid',
+      formality: 'casual',
+      season: 'all year',
     ),
   ),
   SampleClothing(
     'blue_jeans',
     ClothingTags(
-      category: 'Bottom',
-      color: 'Blue',
-      pattern: 'Solid',
-      formality: 'Casual',
-      season: 'All year',
+      category: 'bottom',
+      color: 'blue',
+      pattern: 'solid',
+      formality: 'casual',
+      season: 'all year',
     ),
   ),
   SampleClothing(
     'khaki_chinos',
     ClothingTags(
-      category: 'Bottom',
-      color: 'Khaki',
-      pattern: 'Solid',
-      formality: 'Business casual',
-      season: 'All year',
+      category: 'bottom',
+      color: 'khaki',
+      pattern: 'solid',
+      formality: 'business casual',
+      season: 'all year',
     ),
   ),
   SampleClothing(
     'gray_dress_pants',
     ClothingTags(
-      category: 'Bottom',
-      color: 'Gray',
-      pattern: 'Solid',
-      formality: 'Formal',
-      season: 'All year',
+      category: 'bottom',
+      color: 'gray',
+      pattern: 'solid',
+      formality: 'formal',
+      season: 'all year',
     ),
   ),
   SampleClothing(
     'navy_shorts',
     ClothingTags(
-      category: 'Bottom',
-      color: 'Navy',
-      pattern: 'Solid',
-      formality: 'Casual',
-      season: 'Summer',
+      category: 'bottom',
+      color: 'navy',
+      pattern: 'solid',
+      formality: 'casual',
+      season: 'summer',
     ),
   ),
   SampleClothing(
     'green_dress',
     ClothingTags(
-      category: 'Dress',
-      color: 'Green',
-      pattern: 'Solid',
-      formality: 'Business casual',
-      season: 'Spring',
+      category: 'dress',
+      color: 'green',
+      pattern: 'solid',
+      formality: 'business casual',
+      season: 'spring',
     ),
   ),
   SampleClothing(
     'black_jacket',
     ClothingTags(
-      category: 'Outerwear',
-      color: 'Black',
-      pattern: 'Solid',
-      formality: 'Casual',
-      season: 'Fall',
+      category: 'outerwear',
+      color: 'black',
+      pattern: 'solid',
+      formality: 'casual',
+      season: 'fall',
     ),
   ),
   SampleClothing(
     'olive_jacket',
     ClothingTags(
-      category: 'Outerwear',
-      color: 'Olive',
-      pattern: 'Solid',
-      formality: 'Casual',
-      season: 'Winter',
+      category: 'outerwear',
+      color: 'olive',
+      pattern: 'solid',
+      formality: 'casual',
+      season: 'winter',
     ),
   ),
   SampleClothing(
     'white_sneakers',
     ClothingTags(
-      category: 'Shoes',
-      color: 'White',
-      pattern: 'Solid',
-      formality: 'Casual',
-      season: 'All year',
+      category: 'shoes',
+      color: 'white',
+      pattern: 'solid',
+      formality: 'casual',
+      season: 'all year',
     ),
   ),
   SampleClothing(
     'red_sneakers',
     ClothingTags(
-      category: 'Shoes',
-      color: 'Red',
-      pattern: 'Solid',
-      formality: 'Casual',
-      season: 'Summer',
+      category: 'shoes',
+      color: 'red',
+      pattern: 'solid',
+      formality: 'casual',
+      season: 'summer',
     ),
   ),
   SampleClothing(
     'brown_boots',
     ClothingTags(
-      category: 'Shoes',
-      color: 'Brown',
-      pattern: 'Solid',
-      formality: 'Casual',
-      season: 'Winter',
+      category: 'shoes',
+      color: 'brown',
+      pattern: 'solid',
+      formality: 'casual',
+      season: 'winter',
     ),
   ),
   SampleClothing(
     'black_dress_shoes',
     ClothingTags(
-      category: 'Shoes',
-      color: 'Black',
-      pattern: 'Solid',
-      formality: 'Formal',
-      season: 'All year',
+      category: 'shoes',
+      color: 'black',
+      pattern: 'solid',
+      formality: 'formal',
+      season: 'all year',
     ),
   ),
 ];
 
-/// Fills the closet with [sampleCloset], using tags already written so no AI
+/// Fills the closet with [sampleClothes], using tags already written so no AI
 /// call is needed. Settings can reuse this for its Load sample closet option.
 class SampleClosetLoader {
   SampleClosetLoader({
-    ClosetRepository? repository,
+    required this.repository,
     AssetBundle? bundle,
     PhotosDirectory? photosDirectory,
-  }) : _repository = repository ?? defaultClosetRepository,
-       _bundle = bundle ?? rootBundle,
+  }) : _bundle = bundle ?? rootBundle,
        _photosDirectory = photosDirectory ?? getApplicationDocumentsDirectory;
 
-  final ClosetRepository _repository;
+  final ClosetRepository repository;
   final AssetBundle _bundle;
   final PhotosDirectory _photosDirectory;
 
@@ -222,7 +222,7 @@ class SampleClosetLoader {
     final stamp = DateTime.now().microsecondsSinceEpoch;
     final saved = <File>[];
     try {
-      for (final sample in sampleCloset) {
+      for (final sample in sampleClothes) {
         final data = await _bundle.load(sample.assetPath);
         final file = File(
           '${closetPhotos.path}/sample_${stamp}_${sample.imageName}.png',
@@ -239,14 +239,19 @@ class SampleClosetLoader {
       rethrow;
     }
 
-    for (var i = 0; i < sampleCloset.length; i++) {
-      await _repository.addItem(
-        ClothingItem(
-          id: 'sample_${stamp}_${sampleCloset[i].imageName}',
-          photoPath: saved[i].path,
-          tags: sampleCloset[i].tags,
+    final now = DateTime.now();
+    await Future.wait([
+      for (var i = 0; i < sampleClothes.length; i++)
+        repository.saveItem(
+          ClothingItem(
+            id: 'sample_${stamp}_${sampleClothes[i].imageName}',
+            photoPath: saved[i].path,
+            tags: sampleClothes[i].tags,
+            // Spaced out so the closet keeps the list's order, newest first.
+            createdAt: now.subtract(Duration(seconds: i)),
+            isSample: true,
+          ),
         ),
-      );
-    }
+    ]);
   }
 }

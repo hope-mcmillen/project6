@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/logging/app_log.dart';
 import 'app_shell.dart';
 
 const plum = Color(0xFF7043D4);
@@ -12,6 +13,7 @@ class FitCheckApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
     title: 'Fitcheck AI',
     debugShowCheckedModeBanner: false,
+    navigatorObservers: [AppNavigatorObserver()],
     theme: ThemeData(
       useMaterial3: true,
       scaffoldBackgroundColor: const Color(0xFFFAF8FC),

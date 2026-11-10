@@ -1,4 +1,6 @@
 import 'package:fitcheck_ai/app/app.dart';
+import 'package:fitcheck_ai/core/data/backend_services.dart';
+import 'package:fitcheck_ai/core/data/firebase_backend.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -6,37 +8,42 @@ Future<void> openApp(WidgetTester tester) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(const FitCheckApp());
+  await tester.pumpWidget(
+    BackendScope(services: BackendServices.fake(), child: const FitCheckApp()),
+  );
 }
 
 void main() {
-  testWidgets('navigation and wardrobe wear tracking work', (tester) async {
+  testWidgets('wardrobe tab shows the real closet', (tester) async {
     await openApp(tester);
     expect(find.text('Good outfits start here.'), findsOneWidget);
     await tester.tap(find.text('Wardrobe'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Daisy tee'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('I wore this today'));
-    await tester.pumpAndSettle();
-    expect(find.text('Worn today'), findsOneWidget);
+    expect(find.text('Your wardrobe'), findsOneWidget);
+    expect(find.text('Load sample closet'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('sample clothing can be added without a camera', (tester) async {
+  testWidgets('add item tab offers camera and gallery', (tester) async {
     await openApp(tester);
     await tester.tap(find.text('Add item'));
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView), const Offset(0, -350));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Try a sample photo'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Add to wardrobe'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Add to wardrobe'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('7 pieces'), findsOneWidget);
+    expect(find.text('Take photo'), findsOneWidget);
+    expect(find.text('Choose from gallery'), findsOneWidget);
+    expect(find.byType(BackButton), findsNothing);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the closet add button switches to the add item tab', (
+    tester,
+  ) async {
+    await openApp(tester);
+    await tester.tap(find.text('Wardrobe'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FloatingActionButton, 'Add item'));
+    await tester.pumpAndSettle();
+    expect(find.text('Take photo'), findsOneWidget);
+    expect(find.byType(BackButton), findsNothing);
   });
 
   testWidgets('demo chat produces a selectable sample outfit', (tester) async {

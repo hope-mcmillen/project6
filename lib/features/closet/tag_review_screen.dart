@@ -1,21 +1,38 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
+import '../../core/ai/ai_service.dart';
+import '../../core/data/models.dart';
+import '../../core/data/repositories.dart';
+import '../../core/logging/app_log.dart';
 import 'closet_photo.dart';
-import 'closet_repository.dart';
-import 'clothing_item.dart';
-import 'clothing_tagger.dart';
+import 'closet_services.dart';
+
+typedef ReadPhoto = Future<Uint8List> Function(String photoPath);
+
+Future<Uint8List> _readPhotoFile(String photoPath) =>
+    File(photoPath).readAsBytes();
 
 class TagReviewScreen extends StatefulWidget {
   const TagReviewScreen({
     super.key,
     required this.photoPath,
     this.repository,
-    this.tagger,
+    this.ai,
+    this.readPhoto = _readPhotoFile,
+    this.onSaved,
   });
 
   final String photoPath;
   final ClosetRepository? repository;
-  final ClothingTagger? tagger;
+  final AiService? ai;
+  final ReadPhoto readPhoto;
+
+  /// Called after saving, once the screen has returned to the first route.
+  final VoidCallback? onSaved;
 
   @override
   State<TagReviewScreen> createState() => _TagReviewScreenState();
@@ -23,8 +40,8 @@ class TagReviewScreen extends StatefulWidget {
 
 class _TagReviewScreenState extends State<TagReviewScreen> {
   late final ClosetRepository _repository =
-      widget.repository ?? defaultClosetRepository;
-  late final ClothingTagger _tagger = widget.tagger ?? defaultClothingTagger;
+      widget.repository ?? closetServices(context).closet;
+  late final AiService _ai = widget.ai ?? closetServices(context).ai;
 
   final _formKey = GlobalKey<FormState>();
   final _color = TextEditingController();
@@ -34,8 +51,7 @@ class _TagReviewScreenState extends State<TagReviewScreen> {
 
   String? _category;
   bool _isLoadingTags = true;
-  bool _tagsFailed = false;
-  bool _isSaving = false;
+  String? _tagFailure;
 
   @override
   void initState() {
@@ -54,57 +70,81 @@ class _TagReviewScreenState extends State<TagReviewScreen> {
 
   Future<void> _loadTags() async {
     try {
-      final tags = await _tagger.suggestTags(widget.photoPath);
+      final photo = await widget.readPhoto(widget.photoPath);
+      final tags = await _ai.tagClothing(photo);
       if (!mounted) return;
+      final category = tags.category.toLowerCase();
+      final known = ClothingTags.categories.contains(category);
+      AppLog.ui(
+        known
+            ? 'Review Tags: filled in the suggested tags'
+            : 'Review Tags: suggested category "$category" is not one we '
+                  'use, so the user must pick one',
+      );
       setState(() {
-        _category = clothingCategories.contains(tags.category)
-            ? tags.category
-            : null;
+        _category = known ? category : null;
         _color.text = tags.color;
         _pattern.text = tags.pattern;
         _formality.text = tags.formality;
         _season.text = tags.season;
         _isLoadingTags = false;
       });
-    } on Exception {
+    } on Exception catch (error) {
+      AppLog.ui(
+        'Review Tags: no suggestions, switching to manual entry ($error)',
+      );
       if (!mounted) return;
       setState(() {
-        _tagsFailed = true;
+        _tagFailure = error is AiServiceException
+            ? error.message
+            : 'We could not suggest tags for this photo.';
         _isLoadingTags = false;
       });
     }
   }
 
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isSaving = true);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      await _repository.addItem(
-        ClothingItem(
-          id: DateTime.now().microsecondsSinceEpoch.toString(),
-          photoPath: widget.photoPath,
-          tags: ClothingTags(
-            category: _category!,
-            color: _color.text.trim(),
-            pattern: _pattern.text.trim(),
-            formality: _formality.text.trim(),
-            season: _season.text.trim(),
-          ),
-        ),
-      );
-      if (!mounted) return;
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Added to your closet')),
-      );
-      Navigator.of(context).popUntil((route) => route.isFirst);
-    } on Exception {
-      if (!mounted) return;
-      setState(() => _isSaving = false);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Could not save this item. Try again.')),
-      );
+  void _save() {
+    AppLog.tap('Save to closet', screen: 'Review Tags');
+    if (!_formKey.currentState!.validate()) {
+      AppLog.ui('Review Tags: not saved, no category chosen');
+      return;
     }
+    final item = ClothingItem(
+      id: newClosetId(),
+      photoPath: widget.photoPath,
+      createdAt: DateTime.now(),
+      tags: ClothingTags(
+        category: _category!,
+        color: _color.text.trim(),
+        pattern: _pattern.text.trim(),
+        formality: _formality.text.trim(),
+        season: _season.text.trim(),
+      ),
+    );
+    AppLog.ui(
+      'Review Tags: added ${item.id} to the closet; Firestore confirms in the '
+      'background',
+    );
+    final messenger = ScaffoldMessenger.of(context);
+    // Firestore shows the item right away but may not confirm the write until
+    // the phone is back online, so the screen does not wait for it.
+    unawaited(
+      _repository.saveItem(item).catchError((Object _) {
+        // Replace the "Added" message so the failure is not missed.
+        messenger
+          ..clearSnackBars()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Could not save that item. Try again.'),
+            ),
+          );
+      }),
+    );
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Added to your closet')),
+    );
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    widget.onSaved?.call();
   }
 
   Widget _buildTextField(String label, TextEditingController controller) {
@@ -113,41 +153,39 @@ class _TagReviewScreenState extends State<TagReviewScreen> {
       child: TextFormField(
         controller: controller,
         textCapitalization: TextCapitalization.sentences,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-        ),
+        decoration: InputDecoration(labelText: label),
       ),
     );
   }
 
   Widget _buildForm() {
+    final failure = _tagFailure;
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: .stretch,
         children: [
-          if (_tagsFailed)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 12),
-              child: Text(
-                'We could not suggest tags for this photo. '
-                'Fill them in yourself.',
-              ),
+          if (failure != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text('$failure Fill in the tags yourself.'),
             ),
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: DropdownButtonFormField<String>(
               initialValue: _category,
-              decoration: const InputDecoration(
-                labelText: 'Category',
-                border: OutlineInputBorder(),
-              ),
+              decoration: const InputDecoration(labelText: 'Category'),
               items: [
-                for (final category in clothingCategories)
-                  DropdownMenuItem(value: category, child: Text(category)),
+                for (final category in ClothingTags.categories)
+                  DropdownMenuItem(
+                    value: category,
+                    child: Text(categoryLabel(category)),
+                  ),
               ],
-              onChanged: (value) => setState(() => _category = value),
+              onChanged: (value) {
+                AppLog.tap('Category: $value', screen: 'Review Tags');
+                setState(() => _category = value);
+              },
               validator: (value) => value == null ? 'Choose a category' : null,
             ),
           ),
@@ -155,10 +193,8 @@ class _TagReviewScreenState extends State<TagReviewScreen> {
           _buildTextField('Pattern', _pattern),
           _buildTextField('Formality', _formality),
           _buildTextField('Season', _season),
-          FilledButton(
-            onPressed: _isSaving ? null : _save,
-            child: const Text('Save to closet'),
-          ),
+          const SizedBox(height: 4),
+          FilledButton(onPressed: _save, child: const Text('Save to closet')),
         ],
       ),
     );
@@ -169,7 +205,7 @@ class _TagReviewScreenState extends State<TagReviewScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Review Tags')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         children: [
           ClosetPhoto(
             photoPath: widget.photoPath,
