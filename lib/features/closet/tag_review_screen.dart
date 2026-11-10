@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../core/ai/ai_service.dart';
 import '../../core/data/models.dart';
 import '../../core/data/repositories.dart';
+import '../../core/logging/app_log.dart';
 import 'closet_photo.dart';
 import 'closet_services.dart';
 
@@ -73,10 +74,15 @@ class _TagReviewScreenState extends State<TagReviewScreen> {
       final tags = await _ai.tagClothing(photo);
       if (!mounted) return;
       final category = tags.category.toLowerCase();
+      final known = ClothingTags.categories.contains(category);
+      AppLog.ui(
+        known
+            ? 'Review Tags: filled in the suggested tags'
+            : 'Review Tags: suggested category "$category" is not one we '
+                  'use, so the user must pick one',
+      );
       setState(() {
-        _category = ClothingTags.categories.contains(category)
-            ? category
-            : null;
+        _category = known ? category : null;
         _color.text = tags.color;
         _pattern.text = tags.pattern;
         _formality.text = tags.formality;
@@ -84,6 +90,9 @@ class _TagReviewScreenState extends State<TagReviewScreen> {
         _isLoadingTags = false;
       });
     } on Exception catch (error) {
+      AppLog.ui(
+        'Review Tags: no suggestions, switching to manual entry ($error)',
+      );
       if (!mounted) return;
       setState(() {
         _tagFailure = error is AiServiceException
@@ -95,7 +104,11 @@ class _TagReviewScreenState extends State<TagReviewScreen> {
   }
 
   void _save() {
-    if (!_formKey.currentState!.validate()) return;
+    AppLog.tap('Save to closet', screen: 'Review Tags');
+    if (!_formKey.currentState!.validate()) {
+      AppLog.ui('Review Tags: not saved, no category chosen');
+      return;
+    }
     final item = ClothingItem(
       id: newClosetId(),
       photoPath: widget.photoPath,
@@ -107,6 +120,10 @@ class _TagReviewScreenState extends State<TagReviewScreen> {
         formality: _formality.text.trim(),
         season: _season.text.trim(),
       ),
+    );
+    AppLog.ui(
+      'Review Tags: added ${item.id} to the closet; Firestore confirms in the '
+      'background',
     );
     final messenger = ScaffoldMessenger.of(context);
     // Firestore shows the item right away but may not confirm the write until
@@ -165,7 +182,10 @@ class _TagReviewScreenState extends State<TagReviewScreen> {
                     child: Text(categoryLabel(category)),
                   ),
               ],
-              onChanged: (value) => setState(() => _category = value),
+              onChanged: (value) {
+                AppLog.tap('Category: $value', screen: 'Review Tags');
+                setState(() => _category = value);
+              },
               validator: (value) => value == null ? 'Choose a category' : null,
             ),
           ),

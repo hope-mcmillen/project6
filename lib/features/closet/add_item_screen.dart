@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/ai/ai_service.dart';
 import '../../core/data/repositories.dart';
+import '../../core/logging/app_log.dart';
 import 'closet_heading.dart';
 import 'closet_photo_picker.dart';
 import 'tag_review_screen.dart';
@@ -34,12 +35,23 @@ class _AddItemScreenState extends State<AddItemScreen> {
   bool _isPicking = false;
 
   Future<void> _addPhoto(ImageSource source) async {
+    final from = source == ImageSource.camera ? 'camera' : 'gallery';
+    AppLog.tap(
+      source == ImageSource.camera ? 'Take photo' : 'Choose from gallery',
+      screen: 'Add Item',
+    );
     setState(() => _isPicking = true);
     try {
       final photoPath = await _photoPicker.pickAndSave(source);
-      if (!mounted || photoPath == null) return;
+      if (photoPath == null) {
+        AppLog.ui('Photo from $from cancelled');
+        return;
+      }
+      AppLog.ui('Photo from $from saved to the closet photos folder');
+      if (!mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
+          settings: const RouteSettings(name: '/review-tags'),
           builder: (_) => TagReviewScreen(
             photoPath: photoPath,
             repository: widget.repository,
@@ -48,7 +60,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
           ),
         ),
       );
-    } on PlatformException {
+    } on PlatformException catch (error) {
+      AppLog.ui('Could not open the $from: ${error.code} ${error.message}');
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()

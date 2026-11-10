@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/data/models.dart';
 import '../../core/data/repositories.dart';
+import '../../core/logging/app_log.dart';
 import '../../core/widgets/not_built.dart';
 import 'closet_heading.dart';
 import 'closet_photo.dart';
@@ -34,25 +35,34 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   Future<void> _removePhoto() async {
     try {
       await widget.deletePhoto(widget.item.photoPath);
+      AppLog.ui('Item Detail: deleted the photo file for ${widget.item.id}');
     } on FileSystemException catch (error) {
       // The item is already gone, so a leftover file should not block the user.
-      debugPrint('Could not delete closet photo: $error');
+      AppLog.ui('Item Detail: could not delete the photo file: $error');
     }
   }
 
   Future<void> _confirmAndDelete() async {
+    AppLog.tap('Delete item', screen: 'Item Detail');
     final confirmed = await showDialog<bool>(
       context: context,
+      routeSettings: const RouteSettings(name: '/delete-item-dialog'),
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete this item?'),
         content: const Text('This removes the item and its photo.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
+            onPressed: () {
+              AppLog.tap('Cancel', screen: 'Delete item dialog');
+              Navigator.of(dialogContext).pop(false);
+            },
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
+            onPressed: () {
+              AppLog.tap('Delete', screen: 'Delete item dialog');
+              Navigator.of(dialogContext).pop(true);
+            },
             child: const Text('Delete'),
           ),
         ],
@@ -118,7 +128,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           ),
           const SizedBox(height: 16),
           OutlinedButton(
-            onPressed: () => showNotBuilt(context, 'FR-3 edit saved tags'),
+            onPressed: () {
+              AppLog.tap('Edit tags (not built yet)', screen: 'Item Detail');
+              showNotBuilt(context, 'FR-3 edit saved tags');
+            },
             child: const Text('Edit tags'),
           ),
           const SizedBox(height: 8),

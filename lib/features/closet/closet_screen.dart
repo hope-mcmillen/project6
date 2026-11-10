@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/data/models.dart';
 import '../../core/data/repositories.dart';
+import '../../core/logging/app_log.dart';
 import 'add_item_screen.dart';
 import 'closet_heading.dart';
 import 'closet_photo.dart';
@@ -48,10 +49,17 @@ class _ClosetScreenState extends State<ClosetScreen> {
   bool _isLoadingSample = false;
 
   Future<void> _loadSampleCloset() async {
+    AppLog.tap('Load sample closet', screen: 'Wardrobe');
     setState(() => _isLoadingSample = true);
+    final watch = Stopwatch()..start();
     try {
       await _sampleLoader.load();
-    } on Exception {
+      AppLog.ui(
+        'Sample closet loaded (${sampleClothes.length} items) in '
+        '${watch.elapsedMilliseconds} ms',
+      );
+    } on Exception catch (error) {
+      AppLog.ui('Sample closet FAILED to load: $error');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not load the sample closet.')),
@@ -62,16 +70,22 @@ class _ClosetScreenState extends State<ClosetScreen> {
   }
 
   void _addItem() {
+    AppLog.tap('Add item', screen: 'Wardrobe');
     final onAddItem = widget.onAddItem;
     if (onAddItem != null) return onAddItem();
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => AddItemScreen(repository: _repository)),
+      MaterialPageRoute(
+        settings: const RouteSettings(name: '/add-item'),
+        builder: (_) => AddItemScreen(repository: _repository),
+      ),
     );
   }
 
   void _openItem(ClothingItem item) {
+    AppLog.tap('${itemName(item)} (${item.id})', screen: 'Wardrobe');
     Navigator.of(context).push(
       MaterialPageRoute(
+        settings: const RouteSettings(name: '/item-detail'),
         builder: (_) => ItemDetailScreen(item: item, repository: _repository),
       ),
     );
@@ -86,7 +100,10 @@ class _ClosetScreenState extends State<ClosetScreen> {
           ChoiceChip(
             label: Text(label),
             selected: _filter == label,
-            onSelected: (_) => setState(() => _filter = label),
+            onSelected: (_) {
+              AppLog.tap('Filter: $label', screen: 'Wardrobe');
+              setState(() => _filter = label);
+            },
           ),
       ],
     );

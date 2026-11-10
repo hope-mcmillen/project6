@@ -1,6 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../firebase_options.dart';
+import '../logging/app_log.dart';
+import '../logging/logging_backend.dart';
 import 'backend_services.dart';
 
 /// The shared bundle is available to every screen without recreating repositories.
@@ -19,8 +23,27 @@ class BackendScope extends InheritedWidget {
       services != oldWidget.services;
 }
 
-Future<BackendServices> connectFirebaseBackend() =>
-    BackendServices.connect(options: DefaultFirebaseOptions.currentPlatform);
+Future<BackendServices> connectFirebaseBackend() async {
+  final options = DefaultFirebaseOptions.currentPlatform;
+  final watch = Stopwatch()..start();
+  AppLog.app('Connecting to Firebase project ${options.projectId}...');
+  try {
+    final services = await BackendServices.connect(options: options);
+    // The uid is the Firestore folder: users/{uid}/items. Never log tokens.
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
+    AppLog.app(
+      'Connected in ${watch.elapsedMilliseconds} ms. '
+      'App Check: ${kDebugMode ? 'debug provider' : 'Play Integrity'}. '
+      'Signed in anonymously, uid $uid',
+    );
+    return withLogging(services);
+  } on Object catch (error) {
+    AppLog.app(
+      'Firebase connect FAILED after ${watch.elapsedMilliseconds} ms: $error',
+    );
+    rethrow;
+  }
+}
 
 /// Firebase startup only. Keith retains the welcome/age-confirmation flow.
 class FirebaseBackend extends StatefulWidget {
@@ -66,9 +89,12 @@ class _FirebaseBackendState extends State<FirebaseBackend> {
                         ),
                         const SizedBox(height: 16),
                         FilledButton(
-                          onPressed: () => setState(() {
-                            _services = Future.sync(widget.load);
-                          }),
+                          onPressed: () {
+                            AppLog.tap('Retry', screen: 'Connection error');
+                            setState(() {
+                              _services = Future.sync(widget.load);
+                            });
+                          },
                           child: const Text('Retry'),
                         ),
                       ],

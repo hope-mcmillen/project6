@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/logging/app_log.dart';
 import '../features/closet/add_item_screen.dart';
 import '../features/closet/closet_screen.dart';
 import 'app.dart';
@@ -19,6 +20,8 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
+  static const tabNames = ['Today', 'Wardrobe', 'Add item', 'Outfits'];
+
   int tab = 0;
   String occasion = 'Everyday', style = 'Casual';
   bool saved = false;
@@ -77,6 +80,16 @@ class _AppShellState extends State<AppShell> {
     super.dispose();
   }
 
+  /// Switches tabs and logs where the user went and how they got there.
+  void goToTab(int value, String how) {
+    if (value == tab) {
+      AppLog.nav('Already on the ${tabNames[tab]} tab ($how)');
+      return;
+    }
+    AppLog.nav('Tab ${tabNames[tab]} -> ${tabNames[value]} ($how)');
+    setState(() => tab = value);
+  }
+
   void notice(String text) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 
@@ -112,7 +125,7 @@ class _AppShellState extends State<AppShell> {
                     const Spacer(),
                     IconButton(
                       tooltip: 'Home',
-                      onPressed: () => setState(() => tab = 0),
+                      onPressed: () => goToTab(0, 'home button'),
                       icon: const Icon(Icons.home_outlined),
                     ),
                   ],
@@ -133,7 +146,7 @@ class _AppShellState extends State<AppShell> {
     ),
     bottomNavigationBar: NavigationBar(
       selectedIndex: tab,
-      onDestinationSelected: (value) => setState(() => tab = value),
+      onDestinationSelected: (value) => goToTab(value, 'bottom bar'),
       backgroundColor: Colors.white,
       indicatorColor: const Color(0xFFE9DDFB),
       destinations: const [
@@ -262,7 +275,10 @@ class _AppShellState extends State<AppShell> {
                     (s) => ChoiceChip(
                       label: Text(s),
                       selected: occasion == s,
-                      onSelected: (_) => setState(() => occasion = s),
+                      onSelected: (_) {
+                        AppLog.tap('Occasion: $s', screen: 'Today');
+                        setState(() => occasion = s);
+                      },
                     ),
                   )
                   .toList(),
@@ -284,7 +300,10 @@ class _AppShellState extends State<AppShell> {
                     (s) => ChoiceChip(
                       label: Text(s),
                       selected: style == s,
-                      onSelected: (_) => setState(() => style = s),
+                      onSelected: (_) {
+                        AppLog.tap('Mood: $s', screen: 'Today');
+                        setState(() => style = s);
+                      },
                     ),
                   )
                   .toList(),
@@ -294,7 +313,10 @@ class _AppShellState extends State<AppShell> {
       ),
       const SizedBox(height: 18),
       FilledButton.icon(
-        onPressed: () => setState(() => tab = 3),
+        onPressed: () {
+          AppLog.tap('Put a look together', screen: 'Today');
+          goToTab(3, '$occasion, $style');
+        },
         icon: const Icon(Icons.auto_awesome),
         label: const Text('Put a look together'),
       ),
@@ -317,7 +339,8 @@ class _AppShellState extends State<AppShell> {
   );
 
   // Member 1's closet, backed by Firestore and the shared AI service.
-  Widget wardrobe() => ClosetScreen(onAddItem: () => setState(() => tab = 2));
+  Widget wardrobe() =>
+      ClosetScreen(onAddItem: () => goToTab(2, 'closet add button'));
 
   Widget garment(Garment item, double size) => Container(
     width: size + 28,
@@ -329,11 +352,18 @@ class _AppShellState extends State<AppShell> {
     child: Icon(item.icon, size: size, color: item.color),
   );
 
-  Widget capture() => AddItemScreen(onSaved: () => setState(() => tab = 1));
+  Widget capture() => AddItemScreen(onSaved: () => goToTab(1, 'item saved'));
 
   void send([String? text]) {
     final value = (text ?? input.text).trim();
-    if (value.isEmpty) return;
+    if (value.isEmpty) {
+      AppLog.ui('Stylist chat: ignored an empty message');
+      return;
+    }
+    AppLog.ui(
+      'Stylist chat: sent a ${value.length}-character message '
+      '(demo reply, not the AI)',
+    );
     setState(() {
       messages.add((value, true));
       messages.add((
@@ -404,7 +434,10 @@ class _AppShellState extends State<AppShell> {
                                 s,
                                 style: const TextStyle(fontSize: 12),
                               ),
-                              onPressed: () => send(s),
+                              onPressed: () {
+                                AppLog.tap('Suggestion: $s', screen: 'Outfits');
+                                send(s);
+                              },
                             ),
                           )
                           .toList(),
@@ -475,6 +508,10 @@ class _AppShellState extends State<AppShell> {
                       onPressed: saved
                           ? null
                           : () {
+                              AppLog.tap(
+                                'Choose this outfit',
+                                screen: 'Outfits',
+                              );
                               setState(() => saved = true);
                               notice('Outfit selected for this session.');
                             },
@@ -484,9 +521,12 @@ class _AppShellState extends State<AppShell> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () => notice(
-                        'More outfit combinations will be available when the stylist is connected.',
-                      ),
+                      onPressed: () {
+                        AppLog.tap('Try a different outfit', screen: 'Outfits');
+                        notice(
+                          'More outfit combinations will be available when the stylist is connected.',
+                        );
+                      },
                       child: const Text('Try a different outfit'),
                     ),
                   ],
@@ -500,13 +540,19 @@ class _AppShellState extends State<AppShell> {
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
         child: TextField(
           controller: input,
-          onSubmitted: (_) => send(),
+          onSubmitted: (_) {
+            AppLog.tap('Keyboard send', screen: 'Outfits');
+            send();
+          },
           decoration: InputDecoration(
             hintText: 'What do you feel like wearing?',
             hintStyle: const TextStyle(fontSize: 13),
             suffixIcon: IconButton(
               tooltip: 'Send message',
-              onPressed: send,
+              onPressed: () {
+                AppLog.tap('Send message', screen: 'Outfits');
+                send();
+              },
               icon: const Icon(Icons.arrow_upward, color: plum),
             ),
           ),
