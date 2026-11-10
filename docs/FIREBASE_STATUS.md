@@ -158,8 +158,8 @@ verdict requirements. [Play Integrity setup and distribution settings](https://f
 After those settings and signing are ready, verify the actual release on a
 physical Android device through token exchange and real AI requests. Release
 verification, the full feature flow and other team devices remain pending.
-The per-device daily request allowance is scheduled for November 10, with
-enforcement/rejection checks on November 11.
+The per-device daily request allowance is implemented on the November 10 review
+branch, with enforcement/rejection checks scheduled for November 11.
 
 November 9 recheck of the existing merged runtime on the approved emulator
 completed a forced App Check token refresh, valid clothing tags in 7,498 ms and
@@ -167,6 +167,21 @@ two validated outfits in 2,284 ms. The real app entry point restored anonymous
 sign-in and exposed the shared repository to the current UI. These observations
 cover the debug emulator. Release/provider console configuration and physical
 phone acceptance remain pending.
+
+## November 10 allowance validation
+
+On the review branch, static analysis found no issues and all 149 Flutter tests
+passed. The 13 new tests cover persistence, concurrent instances and isolates,
+midnight rollover, clock rollback, shared tagging/outfit usage, retries, failures
+and blocked storage.
+
+The authorized emulator's first tagging request exceeded its 10-second deadline.
+The outfit request returned two valid outfits in 10,930 ms. Two reservation
+files were present after those attempts and remained after a separate successful
+startup run. Retrying only the tagging test returned valid tags in 8,778 ms and
+increased the reservation count to three. These are branch observations with
+the normal AI deadlines. Release attestation and the full phone flow remain
+pending.
 
 ## Remaining work
 
@@ -178,9 +193,12 @@ phone acceptance remain pending.
   before AI calls will work; do not treat the debug emulator check as release proof.
 - Obtain Hope and Keith's Google-account emails and approval of their actual roles.
   Kameron's read-only Firebase Viewer access is granted and verified.
-- Teammates must connect the feature screens to the shared services and verify
-  the complete add-photo → tags → Firestore → outfit flow on a real Android phone.
-- The per-device daily AI allowance remains scheduled in M3-08.
+- Kameron's closet and add-item screens now use the shared services. The outfit
+  flow still needs integration, followed by the complete
+  add-photo → tags → Firestore → outfit flow on a real Android phone.
+- The per-device daily AI allowance is ready for review under M3-08. It defaults
+  to 30 provider attempts per local calendar day, including retries and failed
+  requests. See BACKEND_HANDOFF.md for persistence, clock handling and limits.
 - Only Android is registered. Register other platforms before enabling them.
 
 Model references: [supported models](https://firebase.google.com/docs/ai-logic/models)

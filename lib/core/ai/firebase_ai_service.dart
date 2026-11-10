@@ -62,6 +62,8 @@ class FirebaseAiService implements AiService {
         }
       }
       throw const FormatException('No valid reply.');
+    } on AiServiceException {
+      rethrow;
     } on FormatException {
       throw const AiServiceException(
         'AI returned invalid data. Please retry or enter tags manually.',

@@ -90,7 +90,7 @@ first user's sample record. See FIREBASE_STATUS.md for the remaining checks.
   Play Integrity in release builds. A configured release provider is still needed for release AI calls.
 - Debug tokens are credentials: keep them local, never commit/log them in a
   public artifact, and obtain approval before authorizing a token in the console.
-- The local daily AI request limit is still scheduled under M3-08.
+- The local daily AI request allowance is implemented under M3-08 below.
 - Android debug-device registration and release signing/provider prerequisites
   are documented in the App Check developer setup in
   [FIREBASE_STATUS.md](FIREBASE_STATUS.md#android-app-check-developer-setup--november-9).
@@ -119,6 +119,35 @@ duplicate, laundry or incomplete item sets are discarded; if none remain, retry
 once and then surface a clear error. Responses are deduplicated and limited to
 three. Clothing-only wording is requested in the prompt; human review of live
 responses remains necessary. Prompts alone do not guarantee safe wording.
+
+## Daily AI allowance (M3-08, November 10)
+
+The normal `BackendServices.connect` path now shares a persistent allowance
+across tagging and outfit requests. The default is **30 provider attempts per
+device/install per local calendar day**. This count was selected for the course
+app because the requirements specify no numeric limit. Configure a different
+positive count with `BackendServices.connect(dailyAiLimit: ...)` if the team
+changes the policy.
+
+Each provider attempt reserves a slot before sending. Malformed-response retries
+and network failures consume slots. Empty or unreadable photos and incomplete
+closets fail before reservation. A limit or storage failure reaches screens as
+`AiServiceException.message`, including the existing tag-review manual-entry UI.
+Fakes continue to support deterministic screen tests.
+
+`DailyAiAllowance` stores reservation files in the app support directory under
+`daily-ai-allowance-v1`, independently of the Firebase UID. Exclusive file
+creation handles concurrent requests and isolates without losing reservations.
+Usage survives new service instances and app launches. A later local calendar
+date restores the allowance. Moving the clock backwards retains the most recent
+recorded date and its usage until the calendar advances beyond it.
+
+Clearing app data or reinstalling resets this local ledger, and changing the
+clock to a later date can advance it. Provider quotas and billing controls are
+separate. Storage failures block the provider call, and interrupted attempts
+can leave a consumed slot. Keep this shared client in the AI path when adding
+Fit Check or other model operations. Release App Check and physical-phone
+verification remain pending under M3-08.
 
 ## Weather (M3-07, November 8)
 
