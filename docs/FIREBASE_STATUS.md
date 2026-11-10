@@ -68,6 +68,22 @@ retains its 10-second deadline. After an intermittent service error, the next
 authorized emulator run passed both live checks: **8,462 ms** for clothing tags
 and **3,310 ms** for two validated outfits. The full phone flow is still pending.
 
+### November 6 Android startup regression
+
+The merged UI launched without `BackendScope`. The startup regression test
+reproduced this on `master`. The Friday fix restores `FirebaseBackend` at the
+Android entry point and preserves the UI preview on unregistered platforms.
+On the review branch, the same test reached the current app with an anonymous
+Firebase user and read from the shared closet repository. Static analysis and
+all 63 Flutter tests passed locally.
+
+The authorized emulator also verified Firestore owner access, cross-user
+denials, and cached closet reads after a separate offline relaunch. The first
+Gemini run returned tags in **5,015 ms** and timed out on outfits with the
+retry message. A fresh run with the same settings returned tags in **4,224 ms**
+and two validated outfits in **2,124 ms**. The feature screens still use demo
+data, and a physical Android phone was unavailable for the end-to-end flow.
+
 To reproduce live AI checks and the offline restart check:
 
 ```sh
@@ -88,6 +104,69 @@ The account owner accepted the Gemini agreement and enabled the APIs. Firebase
 AI Logic is active with Basic App Check enforcement. The console confirms both
 the approved local emulator debug credential and Kameron's Firebase Viewer role.
 No development credential or personal teammate email is committed to GitHub.
+
+## Android App Check developer setup — November 9
+
+`BackendServices.connect` already activates App Check after Firebase
+initialization and before Auth, Firestore and AI are used. The selected provider
+comes from the Flutter build mode. Calling `FirebaseBackend` at the app entry
+point supplies the shared services. [Flutter App Check setup](https://firebase.google.com/docs/app-check/flutter/default-providers).
+
+| Flutter mode | Provider in this app | Required configuration |
+| --- | --- | --- |
+| Debug | `AndroidDebugProvider` | Approved credential for that device/install |
+| Profile or release | `AndroidPlayIntegrityProvider` | Signing certificate and Play Integrity setup for the distribution channel |
+
+For a new teammate development device:
+
+1. Run `flutter run --debug -d DEVICE_ID` using this project's Android app.
+   Inspect the `DebugAppCheckProvider` message in local Logcat to obtain its
+   generated debug credential. Treat the raw logs as private.
+2. Obtain account-owner approval for the specific device and credential. In
+   Firebase project `fitcheck-ai-258e1`, open App Check, select the Android app
+   `com.example.project6`, then use its overflow menu's **Manage debug tokens**
+   action to register the approved credential.
+3. Run the checks below. Their setup forces an App Check token refresh before
+   making real AI requests, and the startup check confirms the shared backend.
+   Preserve the installation between runs with `--no-uninstall`.
+
+```sh
+flutter test integration_test/firebase_ai_test.dart -d DEVICE_ID --no-uninstall
+flutter test integration_test/firebase_startup_test.dart -d DEVICE_ID --no-uninstall
+```
+
+The existing local emulator is already approved and registered. Other devices
+need their own approval. Keep debug credentials, App Check tokens and raw logs
+out of GitHub and recordings. A cleared installation can generate a different
+credential. [Firebase debug-provider setup](https://firebase.google.com/docs/app-check/flutter/debug-provider).
+
+### Release handoff to Keith and the account owner
+
+`android/app/build.gradle.kts` currently assigns the debug signing configuration
+to release builds. Keith must establish the intended release signing identity
+and distribution channel. The SHA-256 fingerprint must match the certificate
+on the distributed app. A Google Play build uses its app-signing certificate.
+
+The account owner links the same Firebase project in Play Console's App
+integrity settings and registers the Android app's signing fingerprint for
+Firebase App Check's Play Integrity provider. Its app-recognition, licensing
+and device-integrity settings must match the chosen distribution channel.
+Firebase's default app-recognition requirement expects publication on Google
+Play, while its documented setup for distribution outside Play uses different
+verdict requirements. [Play Integrity setup and distribution settings](https://firebase.google.com/docs/app-check/android/play-integrity-provider).
+
+After those settings and signing are ready, verify the actual release on a
+physical Android device through token exchange and real AI requests. Release
+verification, the full feature flow and other team devices remain pending.
+The per-device daily request allowance is scheduled for November 10, with
+enforcement/rejection checks on November 11.
+
+November 9 recheck of the existing merged runtime on the approved emulator
+completed a forced App Check token refresh, valid clothing tags in 7,498 ms and
+two validated outfits in 2,284 ms. The real app entry point restored anonymous
+sign-in and exposed the shared repository to the current UI. These observations
+cover the debug emulator. Release/provider console configuration and physical
+phone acceptance remain pending.
 
 ## Remaining work
 
