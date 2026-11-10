@@ -1,6 +1,7 @@
 import 'package:fitcheck_ai/core/data/backend_services.dart';
 import 'package:fitcheck_ai/core/data/fake_repositories.dart';
 import 'package:fitcheck_ai/core/ai/fake_ai_service.dart';
+import 'package:fitcheck_ai/core/data/models.dart';
 import 'package:fitcheck_ai/features/closet/add_item_screen.dart';
 import 'package:fitcheck_ai/features/closet/closet_photo.dart';
 import 'package:fitcheck_ai/features/closet/closet_screen.dart';
@@ -11,12 +12,40 @@ import 'package:flutter_test/flutter_test.dart';
 import 'closet_test_helpers.dart';
 
 class StubSampleLoader extends SampleClosetLoader {
-  StubSampleLoader(this.onLoad) : super(repository: FakeClosetRepository());
+  StubSampleLoader(this.onLoad, {this.onClear})
+    : super(repository: FakeClosetRepository());
 
   final Future<void> Function() onLoad;
+  final Future<int> Function()? onClear;
 
   @override
   Future<void> load() => onLoad();
+
+  @override
+  Future<int> clear() => onClear!();
+}
+
+/// A closet whose first read fails, like a Firestore listener that is refused.
+class FlakyClosetRepository extends TestClosetRepository {
+  int watchCalls = 0;
+
+  @override
+  Stream<List<ClothingItem>> watchItems() {
+    watchCalls++;
+    if (watchCalls == 1) return Stream.error(Exception('listen refused'));
+    return super.watchItems();
+  }
+}
+
+ClothingItem sampleItem(String id, {String category = 'top'}) {
+  final item = testItem(id, category: category);
+  return ClothingItem(
+    id: item.id,
+    photoPath: item.photoPath,
+    tags: item.tags,
+    createdAt: item.createdAt,
+    isSample: true,
+  );
 }
 
 void main() {
@@ -28,11 +57,12 @@ void main() {
     WidgetTester tester, {
     SampleClosetLoader? sampleLoader,
     VoidCallback? onAddItem,
+    TestClosetRepository? closet,
   }) async {
     await pumpClosetScreen(
       tester,
       ClosetScreen(
-        repository: repository,
+        repository: closet ?? repository,
         sampleLoader: sampleLoader,
         onAddItem: onAddItem,
       ),
@@ -187,5 +217,193 @@ void main() {
       find.widgetWithText(FilledButton, 'Load sample closet'),
     );
     expect(button.onPressed, isNotNull);
+  });
+
+  Future<void> chooseFilter(WidgetTester tester, String filter, String value) {
+    return tester
+        .tap(find.byKey(ValueKey('$filter filter')))
+        .then((_) => tester.pumpAndSettle())
+        .then((_) => tester.tap(find.text(value).last))
+        .then((_) => tester.pumpAndSettle());
+  }
+
+  List<String> shownPhotos(WidgetTester tester) => [
+    for (final photo in tester.widgetList<ClosetPhoto>(
+      find.byType(ClosetPhoto),
+    ))
+      photo.photoPath,
+  ];
+
+  testWidgets('the color filter lists closet colors and narrows the grid', (
+    tester,
+  ) async {
+    await repository.saveItem(testItem('shirt', color: 'Blue '));
+    await repository.saveItem(testItem('tee', color: 'red'));
+    await repository.saveItem(
+      testItem('boots', category: 'shoes', color: 'blue'),
+    );
+    await openCloset(tester);
+
+    expect(find.text('Color: Any'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('Color filter')));
+    await tester.pumpAndSettle();
+    // Each color is offered once, whatever its spacing or case.
+    expect(find.text('Any color'), findsWidgets);
+    expect(find.text('Blue'), findsWidgets);
+    expect(find.text('Red'), findsWidgets);
+    await tester.tap(find.text('Blue').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Color: Blue'), findsOneWidget);
+    expect(
+      shownPhotos(tester),
+      unorderedEquals(['/photos/shirt.jpg', '/photos/boots.jpg']),
+    );
+
+    // Filters combine with the category chips.
+    await tester.tap(find.text('Shoes'));
+    await tester.pumpAndSettle();
+    expect(shownPhotos(tester), ['/photos/boots.jpg']);
+  });
+
+  testWidgets('a season filter also shows all-year pieces', (tester) async {
+    await repository.saveItem(testItem('tee', season: 'summer'));
+    await repository.saveItem(testItem('coat', season: 'winter'));
+    await repository.saveItem(testItem('jeans', season: 'all year'));
+    await openCloset(tester);
+
+    await chooseFilter(tester, 'Season', 'Summer');
+    expect(
+      shownPhotos(tester),
+      unorderedEquals(['/photos/tee.jpg', '/photos/jeans.jpg']),
+    );
+
+    await chooseFilter(tester, 'Season', 'All year');
+    expect(shownPhotos(tester), ['/photos/jeans.jpg']);
+
+    await chooseFilter(tester, 'Season', 'Any season');
+    expect(shownPhotos(tester), hasLength(3));
+  });
+
+  testWidgets('no matches offers to clear every filter', (tester) async {
+    await repository.saveItem(testItem('shirt', color: 'blue'));
+    await repository.saveItem(
+      testItem('boots', category: 'shoes', color: 'brown'),
+    );
+    await openCloset(tester);
+
+    await chooseFilter(tester, 'Color', 'Blue');
+    await tester.tap(find.text('Shoes'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Nothing in your closet matches these filters.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Clear filters'));
+    await tester.pumpAndSettle();
+    expect(find.text('Color: Any'), findsOneWidget);
+    expect(shownPhotos(tester), hasLength(2));
+  });
+
+  testWidgets('a chosen color stops filtering once no item has it', (
+    tester,
+  ) async {
+    await repository.saveItem(testItem('shirt', color: 'blue'));
+    await repository.saveItem(testItem('tee', color: 'red'));
+    await openCloset(tester);
+    await chooseFilter(tester, 'Color', 'Red');
+
+    await repository.deleteItem('tee');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Color: Any'), findsOneWidget);
+    expect(shownPhotos(tester), ['/photos/shirt.jpg']);
+  });
+
+  testWidgets('clear sample closet only shows with sample items', (
+    tester,
+  ) async {
+    await repository.saveItem(testItem('shirt'));
+    await openCloset(tester);
+    expect(find.text('Clear sample closet'), findsNothing);
+
+    await repository.saveItem(sampleItem('sample-tee'));
+    await tester.pumpAndSettle();
+    expect(find.text('Clear sample closet'), findsOneWidget);
+  });
+
+  testWidgets('clearing the sample closet asks first, then clears it', (
+    tester,
+  ) async {
+    await repository.saveItem(testItem('shirt'));
+    await repository.saveItem(sampleItem('sample-tee'));
+    await repository.saveItem(sampleItem('sample-shoes', category: 'shoes'));
+    var clears = 0;
+    await openCloset(
+      tester,
+      sampleLoader: StubSampleLoader(
+        () async {},
+        onClear: () async {
+          clears++;
+          await repository.deleteItem('sample-tee');
+          await repository.deleteItem('sample-shoes');
+          return 2;
+        },
+      ),
+    );
+
+    await tester.tap(find.text('Clear sample closet'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('removes the 2 sample pieces'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(clears, 0);
+
+    await tester.tap(find.text('Clear sample closet'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Clear'));
+    await tester.pumpAndSettle();
+
+    expect(clears, 1);
+    expect(repository.items.map((item) => item.id), ['shirt']);
+    expect(find.text('Sample closet cleared'), findsOneWidget);
+    expect(find.text('Clear sample closet'), findsNothing);
+  });
+
+  testWidgets('a failed sample clear says so', (tester) async {
+    await repository.saveItem(sampleItem('sample-tee'));
+    await openCloset(
+      tester,
+      sampleLoader: StubSampleLoader(
+        () async {},
+        onClear: () async => throw Exception('write rejected'),
+      ),
+    );
+
+    await tester.tap(find.text('Clear sample closet'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Clear'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Could not clear the sample closet. Try again.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a closet that fails to load can be retried', (tester) async {
+    final closet = FlakyClosetRepository();
+    await closet.saveItem(testItem('shirt'));
+    await openCloset(tester, closet: closet);
+
+    expect(find.text('Could not load your closet.'), findsOneWidget);
+
+    await tester.tap(find.text('Try again'));
+    await tester.pumpAndSettle();
+
+    expect(closet.watchCalls, 2);
+    expect(find.text('Could not load your closet.'), findsNothing);
+    expect(find.text('Blue top'), findsOneWidget);
   });
 }

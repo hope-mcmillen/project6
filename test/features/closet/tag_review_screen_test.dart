@@ -41,8 +41,12 @@ final photoBytes = Uint8List.fromList([1, 2, 3]);
 
 void main() {
   late TestClosetRepository repository;
+  late List<String> deletedPhotos;
 
-  setUp(() => repository = TestClosetRepository());
+  setUp(() {
+    repository = TestClosetRepository();
+    deletedPhotos = [];
+  });
 
   Future<void> openScreen(
     WidgetTester tester,
@@ -57,6 +61,7 @@ void main() {
         repository: repository,
         ai: ai,
         readPhoto: readPhoto ?? (_) async => photoBytes,
+        deletePhoto: (path) async => deletedPhotos.add(path),
         onSaved: onSaved,
       ),
     );
@@ -219,5 +224,61 @@ void main() {
 
     final items = await tester.runAsync(closet.getItems);
     expect(items!.single.tags.category, 'top');
+  });
+
+  testWidgets('saving keeps the photo', (tester) async {
+    await openScreen(tester, StubAi(() async => suggestedTags));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Save to closet'));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(const SizedBox());
+
+    expect(repository.items, hasLength(1));
+    expect(deletedPhotos, isEmpty);
+  });
+
+  testWidgets('backing out without saving deletes the copied photo', (
+    tester,
+  ) async {
+    await pumpClosetScreen(
+      tester,
+      Builder(
+        builder: (context) => TextButton(
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => TagReviewScreen(
+                photoPath: '/photos/shirt.jpg',
+                repository: repository,
+                ai: StubAi(() async => suggestedTags),
+                readPhoto: (_) async => photoBytes,
+                deletePhoto: (path) async => deletedPhotos.add(path),
+              ),
+            ),
+          ),
+          child: const Text('Open'),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    expect(deletedPhotos, isEmpty);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(repository.items, isEmpty);
+    expect(deletedPhotos, ['/photos/shirt.jpg']);
+  });
+
+  testWidgets('a rejected save also deletes the photo', (tester) async {
+    repository.failWrites = true;
+    await openScreen(tester, StubAi(() async => suggestedTags));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Save to closet'));
+    await tester.pumpAndSettle();
+
+    expect(deletedPhotos, ['/photos/shirt.jpg']);
   });
 }

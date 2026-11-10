@@ -47,6 +47,8 @@ class ClosetPhotoPicker {
   }
 }
 
+typedef DeletePhoto = Future<void> Function(String photoPath);
+
 /// Removes a saved closet photo. A file that is already gone is not an error.
 Future<void> deleteClosetPhoto(String photoPath) async {
   try {

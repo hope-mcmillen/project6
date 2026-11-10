@@ -201,18 +201,49 @@ const sampleClothes = [
 ];
 
 /// Fills the closet with [sampleClothes], using tags already written so no AI
-/// call is needed. Settings can reuse this for its Load sample closet option.
+/// call is needed, and clears them out again. Settings can reuse this for its
+/// sample closet options.
 class SampleClosetLoader {
   SampleClosetLoader({
     required this.repository,
     AssetBundle? bundle,
     PhotosDirectory? photosDirectory,
+    DeletePhoto? deletePhoto,
   }) : _bundle = bundle ?? rootBundle,
-       _photosDirectory = photosDirectory ?? getApplicationDocumentsDirectory;
+       _photosDirectory = photosDirectory ?? getApplicationDocumentsDirectory,
+       _deletePhoto = deletePhoto ?? deleteClosetPhoto;
 
   final ClosetRepository repository;
   final AssetBundle _bundle;
   final PhotosDirectory _photosDirectory;
+  final DeletePhoto _deletePhoto;
+
+  /// Deletes every item marked `isSample`, and each one's photo once its
+  /// delete is confirmed. The user's own items stay. Returns how many sample
+  /// items were removed.
+  ///
+  /// The items leave the closet right away, but offline the returned future
+  /// waits until the phone reconnects, so screens should not wait on it.
+  Future<int> clear() async {
+    // The first closet snapshot comes from the phone's cache when offline,
+    // where a one-time server read would stall.
+    final items = await repository.watchItems().first;
+    final samples = [
+      for (final item in items)
+        if (item.isSample) item,
+    ];
+    await Future.wait([for (final item in samples) _clearItem(item)]);
+    return samples.length;
+  }
+
+  Future<void> _clearItem(ClothingItem item) async {
+    await repository.deleteItem(item.id);
+    try {
+      await _deletePhoto(item.photoPath);
+    } on FileSystemException {
+      // The item is already gone, so a leftover file is not worth failing for.
+    }
+  }
 
   Future<void> load() async {
     final photosDirectory = await _photosDirectory();

@@ -68,6 +68,7 @@ earlier tasks only ran against fakes.
 - [ ] **M1-06: Finish closet editing, clearing, and failure states**
   - **Covers:** FR-3, FR-4, FR-9, FR-10
   - **Needs first:** M1-05, M4-04
+  - **Status:** Code on branch `m1-06-closet-editing`, with tests under `test/features/closet/`. M4-04's shared widgets are not merged yet, so the closet uses its own Try again button for now; swap it for Member 4's widget when it lands. The phone check is still to do.
   - **What to do:** Category filters are done. Still to do: edit saved tags with `ClothingItem.copyWith` and `saveItem`; add a "Clear sample closet" option that deletes every `isSample` item and its photo; delete the copied photo when the user backs out of tag review without saving; and add color and season filters. Use Member 4's shared widgets for errors and retries, and add tests under `test/features/closet/`.
   - **Where:** `lib/features/closet/`, `test/features/closet/`
   - **Done when:** Filters work offline, saved tags can be changed, the sample closet clears with one tap, an abandoned photo is not left on the phone, and closet failures show a message instead of crashing.

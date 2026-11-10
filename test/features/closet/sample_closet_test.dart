@@ -79,4 +79,62 @@ void main() {
     final leftovers = Directory('${directory.path}/closet_photos').listSync();
     expect(leftovers, isEmpty);
   });
+
+  test('clear removes only sample items and their photos', () async {
+    final deleted = <String>[];
+    final loader = SampleClosetLoader(
+      repository: repository,
+      photosDirectory: () async => directory,
+      deletePhoto: (path) async => deleted.add(path),
+    );
+    await loader.load();
+    await repository.saveItem(testItem('mine'));
+    final samplePhotos = [
+      for (final item in repository.items)
+        if (item.isSample) item.photoPath,
+    ];
+
+    final cleared = await loader.clear();
+
+    expect(cleared, sampleClothes.length);
+    expect(repository.items.map((item) => item.id), ['mine']);
+    expect(deleted, unorderedEquals(samplePhotos));
+  });
+
+  test('clear deletes the real photo files', () async {
+    final loader = SampleClosetLoader(
+      repository: repository,
+      photosDirectory: () async => directory,
+    );
+    await loader.load();
+
+    await loader.clear();
+
+    final leftovers = Directory('${directory.path}/closet_photos').listSync();
+    expect(leftovers, isEmpty);
+  });
+
+  test('a rejected delete keeps that photo and fails the clear', () async {
+    final deleted = <String>[];
+    final loader = SampleClosetLoader(
+      repository: repository,
+      photosDirectory: () async => directory,
+      deletePhoto: (path) async => deleted.add(path),
+    );
+    await loader.load();
+    repository.failWrites = true;
+
+    await expectLater(loader.clear(), throwsException);
+
+    expect(repository.items, hasLength(sampleClothes.length));
+    expect(deleted, isEmpty);
+  });
+
+  test('clear with no sample items does nothing', () async {
+    await repository.saveItem(testItem('mine'));
+    final loader = SampleClosetLoader(repository: repository);
+
+    expect(await loader.clear(), 0);
+    expect(repository.items, hasLength(1));
+  });
 }

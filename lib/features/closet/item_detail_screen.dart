@@ -6,11 +6,11 @@ import 'package:flutter/material.dart';
 import '../../core/data/models.dart';
 import '../../core/data/repositories.dart';
 import '../../core/logging/app_log.dart';
-import '../../core/widgets/not_built.dart';
 import 'closet_heading.dart';
 import 'closet_photo.dart';
 import 'closet_photo_picker.dart';
 import 'closet_services.dart';
+import 'edit_tags_screen.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   const ItemDetailScreen({
@@ -22,7 +22,7 @@ class ItemDetailScreen extends StatefulWidget {
 
   final ClothingItem item;
   final ClosetRepository? repository;
-  final Future<void> Function(String photoPath) deletePhoto;
+  final DeletePhoto deletePhoto;
 
   @override
   State<ItemDetailScreen> createState() => _ItemDetailScreenState();
@@ -32,10 +32,24 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   late final ClosetRepository _repository =
       widget.repository ?? closetServices(context).closet;
 
+  /// The item as last saved here, so edited tags show without reopening.
+  late ClothingItem _item = widget.item;
+
+  Future<void> _editTags() async {
+    AppLog.tap('Edit tags', screen: 'Item Detail');
+    final updated = await Navigator.of(context).push<ClothingItem>(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: '/edit-tags'),
+        builder: (_) => EditTagsScreen(item: _item, repository: _repository),
+      ),
+    );
+    if (updated != null && mounted) setState(() => _item = updated);
+  }
+
   Future<void> _removePhoto() async {
     try {
-      await widget.deletePhoto(widget.item.photoPath);
-      AppLog.ui('Item Detail: deleted the photo file for ${widget.item.id}');
+      await widget.deletePhoto(_item.photoPath);
+      AppLog.ui('Item Detail: deleted the photo file for ${_item.id}');
     } on FileSystemException catch (error) {
       // The item is already gone, so a leftover file should not block the user.
       AppLog.ui('Item Detail: could not delete the photo file: $error');
@@ -75,7 +89,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     // until the phone is online. The photo goes once the delete is confirmed.
     unawaited(
       _repository
-          .deleteItem(widget.item.id)
+          .deleteItem(_item.id)
           .then(
             (_) => _removePhoto(),
             onError: (Object _) => messenger
@@ -101,7 +115,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final item = widget.item;
+    final item = _item;
     final name = itemName(item);
     return Scaffold(
       appBar: AppBar(title: Text(name)),
@@ -127,13 +141,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          OutlinedButton(
-            onPressed: () {
-              AppLog.tap('Edit tags (not built yet)', screen: 'Item Detail');
-              showNotBuilt(context, 'FR-3 edit saved tags');
-            },
-            child: const Text('Edit tags'),
-          ),
+          OutlinedButton(onPressed: _editTags, child: const Text('Edit tags')),
           const SizedBox(height: 8),
           TextButton(
             onPressed: _confirmAndDelete,
