@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
 import '../ai/ai_service.dart';
+import '../ai/daily_ai_allowance.dart';
 import '../ai/fake_ai_service.dart';
 import '../ai/firebase_ai_service.dart';
 import '../ai/firebase_json_client.dart';
@@ -44,6 +45,7 @@ class BackendServices {
   static Future<BackendServices> connect({
     required FirebaseOptions options,
     String modelName = 'gemini-3.5-flash-lite',
+    int dailyAiLimit = DailyAiAllowance.defaultLimit,
   }) async {
     final app = await Firebase.initializeApp(options: options);
     // New AI Logic projects enforce App Check during provider setup.
@@ -58,15 +60,19 @@ class BackendServices {
     final firestore = FirebaseFirestore.instanceFor(app: app);
     firestore.settings = const Settings(persistenceEnabled: true);
     final scope = UserFirestore(firestore: firestore, uid: user.uid);
+    final allowance = await DailyAiAllowance.forDevice(limit: dailyAiLimit);
     return BackendServices(
       closet: FirestoreClosetRepository(scope),
       outfits: FirestoreOutfitRepository(scope),
       profile: FirestoreProfileRepository(scope),
       wearLogs: FirestoreWearLogRepository(scope),
       ai: FirebaseAiService(
-        client: FirebaseJsonClient(
-          firebaseAI: FirebaseAI.googleAI(app: app),
-          modelName: modelName,
+        client: DailyLimitedAiJsonClient(
+          allowance: allowance,
+          client: FirebaseJsonClient(
+            firebaseAI: FirebaseAI.googleAI(app: app),
+            modelName: modelName,
+          ),
         ),
       ),
     );
