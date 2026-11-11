@@ -7,7 +7,6 @@ import 'package:fitcheck_ai/core/data/models.dart';
 import 'package:fitcheck_ai/features/closet/add_item_screen.dart';
 import 'package:fitcheck_ai/features/closet/closet_photo_picker.dart';
 import 'package:fitcheck_ai/features/closet/tag_review_screen.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -71,12 +70,18 @@ void main() {
     );
     await tester.tap(find.text('Take photo'));
     await tester.pump();
-    // Let the real file read finish, then the AI tags arrive.
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 100)),
-    );
     await tester.pump(const Duration(milliseconds: 500));
-    await tester.pump();
+    // Let the real file read and AI tagging finish.
+    for (
+      var i = 0;
+      i < 40 && find.text('Suggesting tags...').evaluate().isNotEmpty;
+      i++
+    ) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pump();
+    }
 
     // 2. Review the AI tags.
     expect(find.byType(TagReviewScreen), findsOneWidget);
@@ -106,10 +111,7 @@ void main() {
     // 5. The results use the item that was just added.
     expect(outfits, isNotEmpty);
     expect(outfits.length, lessThanOrEqualTo(3));
-    expect(
-      outfits.first.itemIds,
-      containsAll(['jeans', 'sneakers', shirt.id]),
-    );
+    expect(outfits.first.itemIds, containsAll(['jeans', 'sneakers', shirt.id]));
     expect(outfits.first.reason, isNotEmpty);
   });
 }

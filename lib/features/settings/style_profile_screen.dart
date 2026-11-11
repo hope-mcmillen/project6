@@ -105,11 +105,7 @@ class _StyleProfileScreenState extends State<StyleProfileScreen> {
     }
   }
 
-  Widget _field(
-    TextEditingController controller,
-    String label,
-    String hint,
-  ) {
+  Widget _field(TextEditingController controller, String label, String hint) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: TextField(

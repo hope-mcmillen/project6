@@ -6,7 +6,6 @@ import 'package:fitcheck_ai/core/data/models.dart';
 import 'package:fitcheck_ai/features/closet/sample_closet.dart';
 import 'package:fitcheck_ai/features/settings/my_data_deleter.dart';
 import 'package:fitcheck_ai/features/settings/settings_screen.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../app/app_test_helpers.dart';
@@ -29,14 +28,13 @@ class FakeDeleter extends MyDataDeleter {
   Future<void> deleteAll() async => calls++;
 }
 
-BackendServices servicesWithCloset(List<ClothingItem> items) =>
-    BackendServices(
-      closet: FakeClosetRepository(items: items),
-      outfits: FakeOutfitRepository(),
-      profile: FakeProfileRepository(),
-      wearLogs: FakeWearLogRepository(),
-      ai: FakeAiService(),
-    );
+BackendServices servicesWithCloset(List<ClothingItem> items) => BackendServices(
+  closet: FakeClosetRepository(items: items),
+  outfits: FakeOutfitRepository(),
+  profile: FakeProfileRepository(),
+  wearLogs: FakeWearLogRepository(),
+  ai: FakeAiService(),
+);
 
 void main() {
   setUp(() => mockSavedSettings(ageConfirmed: true));

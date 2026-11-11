@@ -146,10 +146,7 @@ class _FitCheckResultScreenState extends State<FitCheckResultScreen> {
     );
   }
 
-  List<Widget> _buildFeedback(
-    BuildContext context,
-    FitCheckFeedback feedback,
-  ) {
+  List<Widget> _buildFeedback(BuildContext context, FitCheckFeedback feedback) {
     final theme = Theme.of(context);
     return [
       Semantics(

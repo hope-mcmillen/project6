@@ -140,10 +140,10 @@ class _AppShellState extends State<AppShell> {
                     const SizedBox(width: 10),
                     // Expanded, so large text sizes shorten the title rather
                     // than push the buttons off screen.
-                    const Expanded(
+                    Expanded(
                       child: Semantics(
                         header: true,
-                        child: Text(
+                        child: const Text(
                           'Fitcheck AI',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

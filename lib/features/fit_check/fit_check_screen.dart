@@ -94,9 +94,7 @@ class _FitCheckScreenState extends State<FitCheckScreen> {
           child: Text('Fit Check', style: theme.textTheme.headlineSmall),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Photograph your outfit and get feedback for the occasion.',
-        ),
+        const Text('Photograph your outfit and get feedback for the occasion.'),
         const SizedBox(height: 16),
         Card(
           color: theme.colorScheme.secondaryContainer,
