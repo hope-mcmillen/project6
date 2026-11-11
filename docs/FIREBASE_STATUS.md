@@ -158,8 +158,8 @@ verdict requirements. [Play Integrity setup and distribution settings](https://f
 After those settings and signing are ready, verify the actual release on a
 physical Android device through token exchange and real AI requests. Release
 verification, the full feature flow and other team devices remain pending.
-The per-device daily request allowance is implemented on the November 10 review
-branch, with enforcement/rejection checks scheduled for November 11.
+The per-device daily request allowance merged in PR #11. See the November 11
+verification below for enforcement and quota observations.
 
 November 9 recheck of the existing merged runtime on the approved emulator
 completed a forced App Check token refresh, valid clothing tags in 7,498 ms and
@@ -183,6 +183,40 @@ increased the reservation count to three. These are branch observations with
 the normal AI deadlines. Release attestation and the full phone flow remain
 pending.
 
+## November 11 protection verification
+
+Read-only console inspection showed Firebase AI Logic as **Basic - Enforced**.
+Cloud Firestore and Authentication were in Monitoring. The Android app's
+production attestation provider was **Not registered**, so release acceptance
+remains pending.
+
+The review branch adds `integration_test/firebase_protection_test.dart`.
+On the existing owner-approved Android emulator, its three checks completed:
+
+1. Forced App Check refresh succeeded, and a benign attested JSON request
+   returned HTTP 200 with the expected result.
+2. The same SDK request with only its App Check header removed received an
+   App Check-specific HTTP 401/403 rejection. The test requires both the HTTP
+   denial and an App Check reason, so another network/API failure cannot count.
+3. An isolated one-request allowance permitted one fixture-provider call, then
+   a recreated service returned the daily-limit error without a second call.
+   This uses a separate temporary ledger and preserves the normal allowance.
+
+The two real SDK probes reserve two attempts in the normal daily allowance.
+Headers, credentials and raw response bodies are kept out of test output.
+To reproduce on an already-authorized development installation:
+
+```sh
+flutter test integration_test/firebase_protection_test.dart -d DEVICE_ID --no-uninstall
+```
+
+Static analysis found no issues, and all 196 Flutter tests completed successfully,
+including the 13 allowance regressions. The dependency lock now includes the
+platform packages already declared by Keith's merged work. The new protection
+test and its evidence await merged review.
+Other team builds, release signing/provider setup and the real-phone feature
+flow remain manual dependencies. M3-08 stays incomplete.
+
 ## Remaining work
 
 - Configure release Play Integrity and authorize other team development devices
@@ -196,7 +230,7 @@ pending.
 - Kameron's closet and add-item screens now use the shared services. The outfit
   flow still needs integration, followed by the complete
   add-photo → tags → Firestore → outfit flow on a real Android phone.
-- The per-device daily AI allowance is ready for review under M3-08. It defaults
+- The per-device daily AI allowance merged in PR #11 under M3-08. It defaults
   to 30 provider attempts per local calendar day, including retries and failed
   requests. See BACKEND_HANDOFF.md for persistence, clock handling and limits.
 - Only Android is registered. Register other platforms before enabling them.

@@ -149,6 +149,15 @@ can leave a consumed slot. Keep this shared client in the AI path when adding
 Fit Check or other model operations. Release App Check and physical-phone
 verification remain pending under M3-08.
 
+For opt-in live enforcement and Android allowance verification, run
+`integration_test/firebase_protection_test.dart` with `--no-uninstall` on an
+already-approved development device. It compares an attested SDK request with
+the same request lacking the App Check header, then exercises an isolated
+one-request allowance. Two real probe attempts count toward the normal daily
+limit. The isolated quota test uses a fixture provider and a temporary ledger.
+See the November 11 observations in FIREBASE_STATUS.md for current evidence and
+the remaining team-device/release checks.
+
 ## Weather (M3-07, November 8)
 
 `OpenMeteoWeatherService` in `core/weather/open_meteo_weather_service.dart`
