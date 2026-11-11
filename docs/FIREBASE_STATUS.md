@@ -214,6 +214,10 @@ Static analysis found no issues, and all 196 Flutter tests completed successfull
 including the 13 allowance regressions. The dependency lock now includes the
 platform packages already declared by Keith's merged work. The new protection
 test and its evidence await merged review.
+CI is pinned to the locally verified Flutter 3.47.1 / Dart 3.13.1 toolchain.
+The floating stable channel selected Flutter 3.50.0 and reported new Material
+import deprecations across the existing app. The pin keeps the reviewed Android
+build on its verified SDK while a future framework migration is coordinated.
 Other team builds, release signing/provider setup and the real-phone feature
 flow remain manual dependencies. M3-08 stays incomplete.
 
