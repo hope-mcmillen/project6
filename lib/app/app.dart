@@ -1,13 +1,23 @@
 import 'package:flutter/material.dart';
 
 import '../core/logging/app_log.dart';
-import 'app_shell.dart';
+import 'age_confirmation.dart';
+import 'app_dependencies.dart';
+import 'connection_status.dart';
+import 'startup_gate.dart';
 
 const plum = Color(0xFF7043D4);
 const ink = Color(0xFF292334);
 
 class FitCheckApp extends StatelessWidget {
-  const FitCheckApp({super.key});
+  const FitCheckApp({
+    super.key,
+    this.ageConfirmation = const AgeConfirmation(),
+    this.connection = const DeviceConnectionStatus(),
+  });
+
+  final AgeConfirmation ageConfirmation;
+  final ConnectionStatus connection;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -39,6 +49,12 @@ class FitCheckApp extends StatelessWidget {
         ),
       ),
     ),
-    home: const AppShell(),
+    // Above the navigator, so every route can reach these.
+    builder: (context, child) => AppDependencies(
+      ageConfirmation: ageConfirmation,
+      connection: connection,
+      child: child ?? const SizedBox.shrink(),
+    ),
+    home: const StartupGate(),
   );
 }

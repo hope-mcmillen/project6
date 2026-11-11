@@ -1,19 +1,14 @@
-import 'package:fitcheck_ai/app/app.dart';
-import 'package:fitcheck_ai/core/data/backend_services.dart';
-import 'package:fitcheck_ai/core/data/firebase_backend.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Future<void> openApp(WidgetTester tester) async {
-  tester.view.physicalSize = const Size(390, 844);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.reset);
-  await tester.pumpWidget(
-    BackendScope(services: BackendServices.fake(), child: const FitCheckApp()),
-  );
-}
+import 'app/app_test_helpers.dart';
+
+/// Opens the app as a returning user, past the welcome screen.
+Future<void> openApp(WidgetTester tester) => pumpFitCheckApp(tester);
 
 void main() {
+  setUp(() => mockSavedSettings(ageConfirmed: true));
+
   testWidgets('wardrobe tab shows the real closet', (tester) async {
     await openApp(tester);
     expect(find.text('Good outfits start here.'), findsOneWidget);

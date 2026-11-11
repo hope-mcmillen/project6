@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../app/privacy_notice.dart';
+
 class PrivacyScreen extends StatelessWidget {
   const PrivacyScreen({super.key});
 
@@ -7,9 +9,12 @@ class PrivacyScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Privacy')),
-      body: const Padding(
-        padding: EdgeInsets.all(16),
-        child: Text('Placeholder privacy notice. Final wording goes here.'),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: const [
+          PrivacyNotice(),
+          Text('You must be 18 or older to use FitCheck AI.'),
+        ],
       ),
     );
   }

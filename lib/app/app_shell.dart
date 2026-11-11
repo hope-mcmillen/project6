@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import '../core/logging/app_log.dart';
 import '../features/closet/add_item_screen.dart';
 import '../features/closet/closet_screen.dart';
+import '../features/fit_check/fit_check_screen.dart';
+import '../features/settings/settings_screen.dart';
 import 'app.dart';
+import 'app_dependencies.dart';
+import 'offline_banner.dart';
 
 class Garment {
   Garment(this.name, this.category, this.color, this.days, this.icon);
@@ -20,7 +24,13 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  static const tabNames = ['Today', 'Wardrobe', 'Add item', 'Outfits'];
+  static const tabNames = [
+    'Today',
+    'Wardrobe',
+    'Add item',
+    'Outfits',
+    'Fit Check',
+  ];
 
   int tab = 0;
   String occasion = 'Everyday', style = 'Casual';
@@ -90,6 +100,16 @@ class _AppShellState extends State<AppShell> {
     setState(() => tab = value);
   }
 
+  void openSettings() {
+    AppLog.tap('Settings', screen: tabNames[tab]);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: '/settings'),
+        builder: (_) => const SettingsScreen(),
+      ),
+    );
+  }
+
   void notice(String text) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 
@@ -111,32 +131,51 @@ class _AppShellState extends State<AppShell> {
                         color: plum,
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: const Icon(Icons.checkroom, color: Colors.white),
-                    ),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'Fitcheck AI',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.8,
+                      child: const Icon(
+                        Icons.checkroom,
+                        color: Colors.white,
+                        semanticLabel: 'FitCheck AI logo',
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 10),
+                    // Expanded, so large text sizes shorten the title rather
+                    // than push the buttons off screen.
+                    Expanded(
+                      child: Semantics(
+                        header: true,
+                        child: const Text(
+                          'Fitcheck AI',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.8,
+                          ),
+                        ),
+                      ),
+                    ),
                     IconButton(
                       tooltip: 'Home',
                       onPressed: () => goToTab(0, 'home button'),
                       icon: const Icon(Icons.home_outlined),
                     ),
+                    IconButton(
+                      tooltip: 'Settings',
+                      onPressed: openSettings,
+                      icon: const Icon(Icons.settings_outlined),
+                    ),
                   ],
                 ),
               ),
+              OfflineBanner(connection: AppDependencies.of(context).connection),
               Expanded(
                 child: switch (tab) {
                   0 => home(),
                   1 => wardrobe(),
                   2 => capture(),
-                  _ => outfits(),
+                  3 => outfits(),
+                  _ => const FitCheckScreen(),
                 },
               ),
             ],
@@ -166,6 +205,11 @@ class _AppShellState extends State<AppShell> {
         NavigationDestination(
           icon: Icon(Icons.auto_awesome_outlined),
           label: 'Outfits',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.camera_alt_outlined),
+          selectedIcon: Icon(Icons.camera_alt),
+          label: 'Fit Check',
         ),
       ],
     ),

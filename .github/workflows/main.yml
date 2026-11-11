@@ -44,5 +44,24 @@ jobs:
       - name: 📥 Get dependencies
         run: flutter pub get
 
+      - name: 🎨 Check formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: 🔍 Analyze
+        run: flutter analyze
+
+      # Includes test/app/friday_flow_test.dart, so a merge that breaks the
+      # add item -> tags -> save -> outfit flow fails here (M4-13).
       - name: ✅ Run tests
         run: flutter test --coverage
+
+      - name: 📦 Build APK
+        run: flutter build apk --debug
+
+      - name: ⬆️ Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: fitcheck-ai-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14

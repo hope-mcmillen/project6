@@ -1,0 +1,40 @@
+# Code owners are asked to review pull requests that touch their folders.
+# Later rules override earlier ones. See the "Who owns what" table in README.md.
+
+# Member 4: Keith (Platform and Fit Check) - default owner
+*                          @k6iith
+
+# Member 1: Kameron (Closet)
+/lib/features/closet/      @kameronarceneaux
+/test/features/closet/     @kameronarceneaux
+/assets/sample_closet/     @kameronarceneaux
+
+# Member 2: Hope (Outfits)
+/lib/features/outfits/     @hope-mcmillen
+/test/features/outfits/    @hope-mcmillen
+
+# Member 3: Marcus (Database and AI)
+/lib/core/data/            @marcusreese1
+/lib/core/ai/              @marcusreese1
+/lib/core/weather/         @marcusreese1
+/test/core/data/           @marcusreese1
+/test/core/ai/             @marcusreese1
+/test/core/weather/        @marcusreese1
+/integration_test/         @marcusreese1
+/firestore.rules           @marcusreese1
+/firestore.indexes.json    @marcusreese1
+/firebase.json             @marcusreese1
+/.firebaserc               @marcusreese1
+/lib/firebase_options.dart @marcusreese1
+
+# Member 4: Keith (Platform and Fit Check)
+/lib/app/                  @k6iith
+/lib/core/widgets/         @k6iith
+/lib/core/images/          @k6iith
+/lib/features/fit_check/   @k6iith
+/lib/features/settings/    @k6iith
+/test/app/                 @k6iith
+/.github/                  @k6iith
+/pubspec.yaml              @k6iith
+/android/                  @k6iith
+/ios/                      @k6iith
