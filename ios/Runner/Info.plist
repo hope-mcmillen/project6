@@ -70,5 +70,7 @@
 	<string>FitCheck AI uses the camera to photograph clothing for your closet.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>FitCheck AI uses your photo library to add clothing to your closet.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>FitCheck AI uses your approximate location to get local weather for outfit suggestions.</string>
 </dict>
 </plist>
