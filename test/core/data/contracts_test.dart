@@ -46,6 +46,58 @@ void main() {
     expect(StyleProfile.fromMap(profile.toMap()).colorsToAvoid, ['red']);
   });
 
+  group('malformed stored documents throw FormatException', () {
+    final valid = sampleCloset().first.toMap();
+    final cases = <String, Map<String, dynamic>>{
+      'missing tags': {...valid}..remove('tags'),
+      'photo path is a number': {...valid, 'photoPath': 42},
+      'tags are not a map': {...valid, 'tags': 'blue top'},
+      'a tag is missing': {
+        ...valid,
+        'tags': {...valid['tags'] as Map<String, dynamic>}..remove('color'),
+      },
+      'date is not ISO 8601': {...valid, 'createdAt': 'yesterday'},
+      'laundry flag is text': {...valid, 'inLaundry': 'yes'},
+    };
+    for (final MapEntry(key: name, value: map) in cases.entries) {
+      test('closet item: $name', () {
+        expect(
+          () => ClothingItem.fromMap('bad', map),
+          throwsA(isA<FormatException>()),
+        );
+      });
+    }
+
+    test('outfit item IDs must all be text', () {
+      expect(
+        () => Outfit.fromMap('bad', {
+          'itemIds': ['top', 7],
+          'reason': 'Coordinated.',
+          'occasion': 'work',
+          'createdAt': '2026-01-01T00:00:00.000Z',
+        }),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('style profile tolerates missing fields but not wrong types', () {
+      expect(StyleProfile.fromMap({}).colorsToAvoid, isEmpty);
+      expect(
+        () => StyleProfile.fromMap({'colorsToAvoid': 'red'}),
+        throwsA(isA<FormatException>()),
+      );
+    });
+  });
+
+  test('optional closet flags default to false when absent', () {
+    final map = sampleCloset().first.toMap()
+      ..remove('isSample')
+      ..remove('inLaundry');
+    final item = ClothingItem.fromMap('item', map);
+    expect(item.isSample, isFalse);
+    expect(item.inLaundry, isFalse);
+  });
+
   test('fake closet streams saves and deletes without Firebase', () async {
     final repo = FakeClosetRepository();
     final stream = repo.watchItems();
