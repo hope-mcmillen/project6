@@ -1,5 +1,6 @@
 import 'package:fitcheck_ai/core/data/backend_services.dart';
 import 'package:fitcheck_ai/core/data/fake_repositories.dart';
+import 'package:fitcheck_ai/core/data/models.dart';
 import 'package:fitcheck_ai/core/ai/fake_ai_service.dart';
 import 'package:fitcheck_ai/features/closet/add_item_screen.dart';
 import 'package:fitcheck_ai/features/closet/closet_photo.dart';
@@ -17,6 +18,23 @@ class StubSampleLoader extends SampleClosetLoader {
 
   @override
   Future<void> load() => onLoad();
+}
+
+/// A closet whose first [failures] watches fail, like a Firestore listener
+/// rejected while offline or before permissions settle.
+class FlakyClosetRepository extends FakeClosetRepository {
+  FlakyClosetRepository({super.items, this.failures = 1});
+
+  int failures;
+
+  @override
+  Stream<List<ClothingItem>> watchItems() {
+    if (failures > 0) {
+      failures--;
+      return Stream.error(Exception('unavailable'));
+    }
+    return super.watchItems();
+  }
 }
 
 void main() {
@@ -169,6 +187,33 @@ void main() {
 
     expect(find.text('Blue top'), findsOneWidget);
     expect(find.text('Load sample closet'), findsNothing);
+  });
+
+  testWidgets('a closet that fails to load can be retried', (tester) async {
+    final flaky = FlakyClosetRepository(items: [testItem('shirt')]);
+    await pumpClosetScreen(tester, ClosetScreen(repository: flaky));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Could not load your closet'), findsOneWidget);
+    expect(find.text('Blue top'), findsNothing);
+
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Could not load your closet'), findsNothing);
+    expect(find.text('Blue top'), findsOneWidget);
+  });
+
+  testWidgets('a retry that fails again still offers retry', (tester) async {
+    final flaky = FlakyClosetRepository(failures: 2);
+    await pumpClosetScreen(tester, ClosetScreen(repository: flaky));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Could not load your closet'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
   });
 
   testWidgets('a failed sample load says so and can be retried', (

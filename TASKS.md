@@ -74,6 +74,7 @@ earlier tasks only ran against fakes.
 - [ ] **M1-07: Write the demo script**
   - **Covers:** Demo video
   - **Needs first:** None
+  - **Status:** Draft on branch `m1-07-demo-script` in `docs/demo-script.md`. The 8-minute target is a placeholder until the course's required length is confirmed. Waiting on review from all 4 members.
   - **What to do:** Write the demo video script: who speaks, what each member shows, and the order of the main flow and Fit Check. Include the proof the course asks for, such as an item appearing in the Firebase console as the server component, and check it against any required length.
   - **Where:** `docs/demo-script.md`
   - **Done when:** All 4 members have reviewed the script, and each has a segment.

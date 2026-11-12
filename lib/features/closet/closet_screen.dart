@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/data/models.dart';
 import '../../core/data/repositories.dart';
 import '../../core/logging/app_log.dart';
+import '../../core/widgets/status_views.dart';
 import 'add_item_screen.dart';
 import 'closet_heading.dart';
 import 'closet_photo.dart';
@@ -41,7 +42,9 @@ class _ClosetScreenState extends State<ClosetScreen> {
 
   late final ClosetRepository _repository =
       widget.repository ?? closetServices(context).closet;
-  late final Stream<List<ClothingItem>> _items = _repository.watchItems();
+
+  /// Replaced by [_retryLoad], because a stream that has failed stays closed.
+  late Stream<List<ClothingItem>> _items = _repository.watchItems();
   late final SampleClosetLoader _sampleLoader =
       widget.sampleLoader ?? SampleClosetLoader(repository: _repository);
 
@@ -67,6 +70,11 @@ class _ClosetScreenState extends State<ClosetScreen> {
     } finally {
       if (mounted) setState(() => _isLoadingSample = false);
     }
+  }
+
+  void _retryLoad() {
+    AppLog.tap('Retry loading closet', screen: 'Wardrobe');
+    setState(() => _items = _repository.watchItems());
   }
 
   void _addItem() {
@@ -236,10 +244,18 @@ class _ClosetScreenState extends State<ClosetScreen> {
         onPressed: _addItem,
       ),
       body: StreamBuilder<List<ClothingItem>>(
+        // A new key per stream starts each retry from a clean loading state,
+        // rather than keeping the previous error on screen.
+        key: ObjectKey(_items),
         stream: _items,
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return const Center(child: Text('Could not load your closet.'));
+            return ErrorRetryView(
+              message:
+                  'Could not load your closet. Check your connection '
+                  'and try again.',
+              onRetry: _retryLoad,
+            );
           }
           final items = snapshot.data;
           if (items == null) {

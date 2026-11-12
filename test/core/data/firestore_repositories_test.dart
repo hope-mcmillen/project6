@@ -49,6 +49,24 @@ void main() {
       );
     },
   );
+  test(
+    'closet skips a malformed document and still shows the others',
+    () async {
+      final db = FakeFirebaseFirestore();
+      final repo = FirestoreClosetRepository(
+        UserFirestore(firestore: db, uid: 'alice'),
+      );
+      final good = sampleCloset().first;
+      await repo.saveItem(good);
+      await db.doc('users/alice/items/broken').set({
+        'photoPath': '/photos/broken.jpg',
+        'createdAt': 'not a date',
+      });
+
+      expect((await repo.getItems()).map((item) => item.id), [good.id]);
+      expect((await repo.watchItems().first).map((item) => item.id), [good.id]);
+    },
+  );
   test('outfits, profile, and wear logs round trip; deleting item preserves missing references', () async {
     final user = UserFirestore(
       firestore: FakeFirebaseFirestore(),

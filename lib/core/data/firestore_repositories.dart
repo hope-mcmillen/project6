@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../logging/app_log.dart';
 import 'models.dart';
 import 'repositories.dart';
 
@@ -34,9 +35,23 @@ class FirestoreClosetRepository implements ClosetRepository {
   FirestoreClosetRepository(UserFirestore user)
     : _items = user.collection('items');
   final CollectionReference<Map<String, dynamic>> _items;
-  List<ClothingItem> _decode(QuerySnapshot<Map<String, dynamic>> snapshot) => [
-    for (final doc in snapshot.docs) ClothingItem.fromMap(doc.id, doc.data()),
-  ]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+  /// Skips documents that cannot be read, so one malformed item does not hide
+  /// the rest of the closet.
+  List<ClothingItem> _decode(QuerySnapshot<Map<String, dynamic>> snapshot) {
+    final items = <ClothingItem>[];
+    for (final doc in snapshot.docs) {
+      try {
+        items.add(ClothingItem.fromMap(doc.id, doc.data()));
+      } on FormatException catch (error) {
+        AppLog.data(
+          'Closet: skipped malformed item ${doc.id}: ${error.message}',
+        );
+      }
+    }
+    return items..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+  }
+
   @override
   Stream<List<ClothingItem>> watchItems() => _items.snapshots().map(_decode);
   @override
