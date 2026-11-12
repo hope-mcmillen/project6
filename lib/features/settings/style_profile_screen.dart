@@ -84,6 +84,7 @@ class _StyleProfileScreenState extends State<StyleProfileScreen> {
     setState(() => _saving = true);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context);
     try {
       await _repository.saveProfile(
         StyleProfile(
@@ -92,15 +93,18 @@ class _StyleProfileScreenState extends State<StyleProfileScreen> {
           regularOccasions: splitList(_occasions.text),
         ),
       );
+      if (!mounted || route?.isCurrent == false) return;
       messenger.showSnackBar(
         const SnackBar(content: Text('Style profile saved')),
       );
       navigator.pop();
     } on Object catch (error) {
       AppLog.ui('Style profile failed to save: $error');
+      if (!mounted || route?.isCurrent == false) return;
       messenger.showSnackBar(
         const SnackBar(content: Text('Could not save. Please try again.')),
       );
+    } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
