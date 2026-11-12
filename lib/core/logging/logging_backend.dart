@@ -189,6 +189,14 @@ class LoggingAiService implements AiService {
   final AiService inner;
 
   @override
+  Future<FitCheckFeedback> checkFit(FitCheckRequest request) => _logged(
+    AppLog.ai,
+    'Checking outfit clothing',
+    () => inner.checkFit(request),
+    describe: (feedback) => _plural(feedback.suggestions.length, 'suggestion'),
+  );
+
+  @override
   Future<ClothingTags> tagClothing(Uint8List photoBytes) => _logged(
     AppLog.ai,
     'Tagging a ${(photoBytes.length / 1024).round()} KB photo',

@@ -24,6 +24,14 @@ class FirebaseAiService implements AiService {
   final DateTime Function() _now;
   int _sequence = 0;
 
+  /// Live photo-policy and generation wiring is the November 13 M3-09 deliverable.
+  @override
+  Future<FitCheckFeedback> checkFit(FitCheckRequest request) async {
+    throw const AiServiceException(
+      'Fit Check feedback is not connected yet. Please try again later.',
+    );
+  }
+
   static final tagSchema = Schema.object(
     properties: {
       'category': Schema.enumString(enumValues: ClothingTags.categories),
