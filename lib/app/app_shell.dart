@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../core/data/firebase_backend.dart';
 import '../core/logging/app_log.dart';
 import '../features/closet/add_item_screen.dart';
 import '../features/closet/closet_screen.dart';
 import '../features/fit_check/fit_check_screen.dart';
+import '../features/outfits/outfit_request_screen.dart';
 import '../features/settings/settings_screen.dart';
 import 'app.dart';
 import 'app_dependencies.dart';
@@ -255,6 +257,19 @@ class _AppShellState extends State<AppShell> {
     child: child,
   );
 
+  void _openOutfitPlanner() {
+    final services = BackendScope.of(context);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => OutfitRequestScreen(
+          loadCloset: services.closet.getItems,
+          ai: services.ai,
+          initialOccasion: occasion,
+        ),
+      ),
+    );
+  }
+
   Widget home() => ListView(
     key: const PageStorageKey('today'),
     padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
@@ -264,34 +279,10 @@ class _AppShellState extends State<AppShell> {
         'Good outfits start here.',
         'Rediscover your wardrobe. Make every piece count.',
       ),
-      card(
-        const Row(
-          children: [
-            Icon(Icons.wb_cloudy_outlined, size: 44, color: plum),
-            SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Baton Rouge, LA',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Partly cloudy · Sample weather',
-                    style: TextStyle(fontSize: 12, color: Colors.black54),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              '76°',
-              style: TextStyle(fontSize: 34, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-        color: const Color(0xFFF0E9FC),
+      OutlinedButton.icon(
+        onPressed: _openOutfitPlanner,
+        icon: const Icon(Icons.wb_cloudy_outlined),
+        label: const Text('Plan an outfit with live weather'),
       ),
       const SizedBox(height: 24),
       const Text(
@@ -456,6 +447,14 @@ class _AppShellState extends State<AppShell> {
               ],
             ),
             const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _openOutfitPlanner,
+                icon: const Icon(Icons.wb_cloudy_outlined),
+                label: const Text('Plan an outfit with live weather'),
+              ),
+            ),
             bubble(
               'What are you dressing for today? Tell me about the event, the weather, or a piece you’d love to wear.',
               false,

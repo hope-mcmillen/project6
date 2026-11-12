@@ -44,6 +44,7 @@ dependencies:
   firebase_app_check: ^0.5.1
   http: ^1.6.0
   geolocator: ^14.0.2
+  url_launcher: ^6.3.3
   shared_preferences: ^2.5.3
   connectivity_plus: ^7.0.0
 

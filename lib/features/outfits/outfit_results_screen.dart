@@ -1,78 +1,65 @@
 import 'package:flutter/material.dart';
 
-import '../../core/widgets/not_built.dart';
-import '../../core/widgets/photo_placeholder.dart';
+import '../../core/data/models.dart';
+import '../closet/closet_photo.dart';
 
 class OutfitResultsScreen extends StatelessWidget {
-  const OutfitResultsScreen({super.key});
+  const OutfitResultsScreen({
+    required this.outfits,
+    required this.closet,
+    super.key,
+  });
+
+  final List<Outfit> outfits;
+  final List<ClothingItem> closet;
 
   @override
   Widget build(BuildContext context) {
+    final byId = {for (final item in closet) item.id: item};
     return Scaffold(
       appBar: AppBar(title: const Text('Your Outfits')),
-      body: ListView(
+      body: ListView.builder(
         padding: const EdgeInsets.all(16),
-        children: [
-          for (var number = 1; number <= 3; number++)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: .start,
-                  children: [
-                    Text(
-                      'Outfit $number',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    const Row(
-                      children: [
-                        Expanded(child: PhotoPlaceholder(height: 72)),
-                        SizedBox(width: 8),
-                        Expanded(child: PhotoPlaceholder(height: 72)),
-                        SizedBox(width: 8),
-                        Expanded(child: PhotoPlaceholder(height: 72)),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text('Sample reason this outfit suits the occasion.'),
-                    Wrap(
-                      children: [
-                        IconButton(
-                          tooltip: 'Save',
-                          icon: const Icon(Icons.bookmark_add),
-                          onPressed: () =>
-                              showNotBuilt(context, 'FR-8 save outfit'),
+        itemCount: outfits.length,
+        itemBuilder: (context, index) {
+          final outfit = outfits[index];
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Outfit ${index + 1}',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(outfit.reason),
+                  const SizedBox(height: 12),
+                  for (final id in outfit.itemIds)
+                    if (byId[id] case final item?)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${item.tags.color} ${item.tags.category}'.trim(),
+                            ),
+                            if (!item.isSample && item.photoPath.isNotEmpty)
+                              ClosetPhoto(
+                                photoPath: item.photoPath,
+                                height: 96,
+                                fit: BoxFit.contain,
+                              ),
+                          ],
                         ),
-                        IconButton(
-                          tooltip: 'Swap a piece',
-                          icon: const Icon(Icons.swap_horiz),
-                          onPressed: () =>
-                              showNotBuilt(context, 'F-2 swap a piece'),
-                        ),
-                        IconButton(
-                          tooltip: 'Good outfit',
-                          icon: const Icon(Icons.thumb_up),
-                          onPressed: () => showNotBuilt(context, 'F-3 rating'),
-                        ),
-                        IconButton(
-                          tooltip: 'Bad outfit',
-                          icon: const Icon(Icons.thumb_down),
-                          onPressed: () => showNotBuilt(context, 'F-3 rating'),
-                        ),
-                        IconButton(
-                          tooltip: 'Wear today',
-                          icon: const Icon(Icons.today),
-                          onPressed: () =>
-                              showNotBuilt(context, 'F-4 wear log'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                ],
               ),
             ),
-        ],
+          );
+        },
       ),
     );
   }
