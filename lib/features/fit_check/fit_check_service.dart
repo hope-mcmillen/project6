@@ -1,38 +1,6 @@
-import 'dart:typed_data';
-
 import '../../core/ai/ai_service.dart';
-import '../../core/data/models.dart';
 
-/// What Fit Check sends to the AI: one outfit photo with no person in it.
-class FitCheckRequest {
-  const FitCheckRequest({
-    required this.photo,
-    required this.occasion,
-    this.weather,
-  });
-
-  /// JPEG bytes, already resized with `resizePhotoForAi`.
-  final Uint8List photo;
-  final String occasion;
-  final WeatherSummary? weather;
-}
-
-/// The AI's verdict plus up to 3 specific suggestions about the clothes.
-class FitCheckFeedback {
-  FitCheckFeedback({required this.verdict, required List<String> suggestions})
-    : suggestions = List.unmodifiable(suggestions.take(3));
-
-  final String verdict;
-  final List<String> suggestions;
-}
-
-/// Member 3 implements this with Firebase AI Logic in M3-09 and passes it to
-/// `FitCheckScreen`. Feedback must cover clothing only, never body shape,
-/// weight, or skin. Throw [AiServiceException] with a user-facing message on
-/// failure.
-abstract interface class FitCheckService {
-  Future<FitCheckFeedback> checkFit(FitCheckRequest request);
-}
+export '../../core/ai/fit_check.dart';
 
 /// Used until M3-09 is merged, so the screens show a clear message instead of
 /// sample feedback.

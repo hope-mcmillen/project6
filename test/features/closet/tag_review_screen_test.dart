@@ -27,6 +27,10 @@ class StubAi implements AiService {
   @override
   Future<List<Outfit>> generateOutfits(OutfitRequest request) =>
       throw UnimplementedError();
+
+  @override
+  Future<FitCheckFeedback> checkFit(FitCheckRequest request) =>
+      throw UnimplementedError();
 }
 
 const suggestedTags = ClothingTags(

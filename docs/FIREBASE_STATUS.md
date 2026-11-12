@@ -212,14 +212,24 @@ flutter test integration_test/firebase_protection_test.dart -d DEVICE_ID --no-un
 
 Static analysis found no issues, and all 196 Flutter tests completed successfully,
 including the 13 allowance regressions. The dependency lock now includes the
-platform packages already declared by Keith's merged work. The new protection
-test and its evidence await merged review.
+platform packages already declared by Keith's merged work. The protection test
+and its evidence merged in PR #13.
 CI is pinned to the locally verified Flutter 3.47.1 / Dart 3.13.1 toolchain.
 The floating stable channel selected Flutter 3.50.0 and reported new Material
 import deprecations across the existing app. The pin keeps the reviewed Android
 build on its verified SDK while a future framework migration is coordinated.
 Other team builds, release signing/provider setup and the real-phone feature
 flow remain manual dependencies. M3-08 stays incomplete.
+
+## November 12 Fit Check contract
+
+The shared AI interface now accepts Keith's existing Fit Check request and
+feedback types through a compatible core contract. Strict structured-reply
+validation, a deterministic fake, failure handling and logging delegation are
+implemented on the review branch. The Firebase method retains the existing
+unavailable response until November 13's live generation and photo-policy work.
+Regression cases were added, with test execution and CI checking skipped at
+the user's request. M3-09 remains incomplete.
 
 ## Remaining work
 

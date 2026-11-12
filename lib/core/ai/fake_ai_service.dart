@@ -8,13 +8,35 @@ class FakeAiService implements AiService {
     this.failTagging = false,
     this.failOutfits = false,
     this.outfitCount = 3,
+    this.failFitCheck = false,
   });
   final bool failTagging;
   final bool failOutfits;
   final int outfitCount;
+  final bool failFitCheck;
   int taggingCalls = 0;
   int outfitCalls = 0;
   OutfitRequest? lastRequest;
+  int fitCheckCalls = 0;
+  FitCheckRequest? lastFitCheckRequest;
+
+  @override
+  Future<FitCheckFeedback> checkFit(FitCheckRequest request) async {
+    fitCheckCalls++;
+    lastFitCheckRequest = request;
+    if (failFitCheck) {
+      throw const AiServiceException('Fit Check unavailable. Please retry.');
+    }
+    return FitCheckFeedback(
+      verdict: 'The clothing has coordinated colors and a consistent style.',
+      suggestions: const [
+        'Pair the outfit with shoes in a matching formality.',
+        'Add a layer suited to the weather.',
+        'Choose an accessory that repeats a clothing color.',
+      ],
+    );
+  }
+
   @override
   Future<ClothingTags> tagClothing(Uint8List photoBytes) async {
     taggingCalls++;

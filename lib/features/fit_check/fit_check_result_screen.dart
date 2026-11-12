@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
-import '../../core/ai/ai_service.dart';
+import '../../core/ai/ai_service.dart' show AiServiceException;
 import '../../core/images/photo_resizer.dart';
 import '../../core/logging/app_log.dart';
 import '../../core/widgets/photo_placeholder.dart';

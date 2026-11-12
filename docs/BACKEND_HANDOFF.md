@@ -100,9 +100,9 @@ first user's sample record. See FIREBASE_STATUS.md for the remaining checks.
 
 ## AI tagging/outfits (M3-04, M3-06)
 
-Tagging prepares a JPEG at at most 1024px on the long edge on an isolate. A
-temporary adapter is in `core/ai/clothing_photo_preparer.dart`; inject Keith's
-M4-12 helper via `preparePhoto` once available. Never send person photos on the
+Tagging prepares a JPEG at at most 1024px on the long edge on an isolate.
+`core/ai/clothing_photo_preparer.dart` delegates to Keith's shared M4-12 helper.
+Never send person photos on the
 free tier; screens must communicate/enforce the team's photo rule. No client-side
 image classifier can currently guarantee a photo contains no person.
 
@@ -119,6 +119,38 @@ duplicate, laundry or incomplete item sets are discarded; if none remain, retry
 once and then surface a clear error. Responses are deduplicated and limited to
 three. Clothing-only wording is requested in the prompt; human review of live
 responses remains necessary. Prompts alone do not guarantee safe wording.
+
+## Fit Check contract (M3-09, November 12)
+
+`AiService` now implements `FitCheckService`, so the shared AI bundle can be
+passed to Keith's existing `FitCheckScreen(service: ...)` constructor. Import
+`FitCheckRequest`, `FitCheckFeedback` and `FitCheckService` through
+`core/ai/ai_service.dart` or `core/ai/fit_check.dart`. The existing feature-facing
+`fit_check_service.dart` path re-exports these same types for current callers.
+
+Requests retain the prepared JPEG, occasion and optional `WeatherSummary`.
+`FitCheckFeedback.fromMap` validates structured model data and throws
+`FormatException` for malformed fields. It requires a nonempty verdict of at
+most 600 characters and a list of zero to three nonempty suggestions of at most
+200 characters each. Text is trimmed and the returned suggestions are immutable.
+The existing display constructor retains its three-suggestion cap.
+
+`BackendServices.fake().ai.checkFit(request)` returns deterministic clothing-only
+feedback. `FakeAiService(failFitCheck: true)` supplies an `AiServiceException`
+for failure UI. The fake records `fitCheckCalls` and `lastFitCheckRequest`.
+The logging wrapper forwards requests and failures while recording only the
+operation and suggestion count.
+
+The Firebase implementation continues to return the existing unavailable
+message. Live generation, the explicit clothing-only photo policy, quota-path
+integration and Keith's wiring handoff are the November 13 deliverable.
+Live clothing-only wording review and photo-flow acceptance remain required
+under M3-09.
+
+Parser, error, immutability, fake and compatibility regression cases were added
+in `test/core/ai/fit_check_contract_test.dart`. Test execution and CI checking
+are skipped at the user's request. M3-09 remains incomplete pending live work
+and merged review.
 
 ## Daily AI allowance (M3-08, November 10)
 
