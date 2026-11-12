@@ -109,13 +109,16 @@ No development credential or personal teammate email is committed to GitHub.
 
 `BackendServices.connect` already activates App Check after Firebase
 initialization and before Auth, Firestore and AI are used. The selected provider
-comes from the Flutter build mode. Calling `FirebaseBackend` at the app entry
+comes from the Flutter build mode, unless the build sets
+`--dart-define=APP_CHECK=debug` or `--dart-define=APP_CHECK=play-integrity`
+(see `lib/core/data/app_check_mode.dart`). Calling `FirebaseBackend` at the app entry
 point supplies the shared services. [Flutter App Check setup](https://firebase.google.com/docs/app-check/flutter/default-providers).
 
 | Flutter mode | Provider in this app | Required configuration |
 | --- | --- | --- |
 | Debug | `AndroidDebugProvider` | Approved credential for that device/install |
 | Profile or release | `AndroidPlayIntegrityProvider` | Signing certificate and Play Integrity setup for the distribution channel |
+| Any, with `APP_CHECK=debug` | `AndroidDebugProvider` | Approved credential for that device/install (no token is built into the app) |
 
 For a new teammate development device:
 
@@ -236,9 +239,11 @@ the user's request. M3-09 remains incomplete.
 - Configure release Play Integrity and authorize other team development devices
   as needed. The current emulator is already authorized. Keep debug tokens out
   of GitHub and public recordings; do not disable App Check enforcement.
-- For a sideloaded Friday demo, use a debug APK and authorize that device's debug
-  token. Release builds select Play Integrity and need its console/signing setup
-  before AI calls will work; do not treat the debug emulator check as release proof.
+- For a sideloaded Friday demo, use a debug APK, or a release APK built with
+  `flutter build apk --release --dart-define=APP_CHECK=debug`, and authorize that
+  device's debug token. Release builds without the define select Play Integrity
+  and need its console/signing setup before AI calls will work; do not treat the
+  debug emulator check as release proof.
 - Obtain Hope and Keith's Google-account emails and approval of their actual roles.
   Kameron's read-only Firebase Viewer access is granted and verified.
 - Kameron's closet and add-item screens now use the shared services. The outfit
