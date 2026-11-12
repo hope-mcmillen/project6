@@ -10,6 +10,7 @@ import '../ai/daily_ai_allowance.dart';
 import '../ai/fake_ai_service.dart';
 import '../ai/firebase_ai_service.dart';
 import '../ai/firebase_json_client.dart';
+import 'app_check_mode.dart';
 import 'fake_repositories.dart';
 import 'firestore_repositories.dart';
 import 'repositories.dart';
@@ -46,15 +47,16 @@ class BackendServices {
     required FirebaseOptions options,
     String modelName = 'gemini-3.5-flash-lite',
     int dailyAiLimit = DailyAiAllowance.defaultLimit,
+    AppCheckMode? appCheck,
   }) async {
     final app = await Firebase.initializeApp(options: options);
     // New AI Logic projects enforce App Check during provider setup.
     // Debug tokens stay local and must be authorized in the Firebase console.
-    await FirebaseAppCheck.instanceFor(app: app).activate(
-      providerAndroid: kDebugMode
-          ? const AndroidDebugProvider()
-          : const AndroidPlayIntegrityProvider(),
-    );
+    // Set --dart-define=APP_CHECK=debug for builds not installed from Play.
+    final mode = appCheck ?? appCheckModeFor(debugBuild: kDebugMode);
+    await FirebaseAppCheck.instanceFor(
+      app: app,
+    ).activate(providerAndroid: androidAppCheckProvider(mode));
     final auth = FirebaseAuth.instanceFor(app: app);
     final user = await ensureAnonymousSignIn(auth);
     final firestore = FirebaseFirestore.instanceFor(app: app);

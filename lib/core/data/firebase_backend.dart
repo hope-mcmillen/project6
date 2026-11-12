@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../firebase_options.dart';
 import '../logging/app_log.dart';
 import '../logging/logging_backend.dart';
+import 'app_check_mode.dart';
 import 'backend_services.dart';
 
 /// The shared bundle is available to every screen without recreating repositories.
@@ -28,12 +29,16 @@ Future<BackendServices> connectFirebaseBackend() async {
   final watch = Stopwatch()..start();
   AppLog.app('Connecting to Firebase project ${options.projectId}...');
   try {
-    final services = await BackendServices.connect(options: options);
+    final appCheck = appCheckModeFor(debugBuild: kDebugMode);
+    final services = await BackendServices.connect(
+      options: options,
+      appCheck: appCheck,
+    );
     // The uid is the Firestore folder: users/{uid}/items. Never log tokens.
     final uid = FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
     AppLog.app(
       'Connected in ${watch.elapsedMilliseconds} ms. '
-      'App Check: ${kDebugMode ? 'debug provider' : 'Play Integrity'}. '
+      'App Check: ${appCheck.label}. '
       'Signed in anonymously, uid $uid',
     );
     return withLogging(services);
