@@ -1,73 +1,49 @@
 import 'package:flutter/material.dart';
 
-import '../../core/widgets/not_built.dart';
-import '../../core/widgets/photo_placeholder.dart';
+import '../../core/data/local_lookbook.dart';
+import '../../core/data/models.dart';
 
 class OutfitResultsScreen extends StatelessWidget {
-  const OutfitResultsScreen({super.key});
+  const OutfitResultsScreen({this.outfit, this.outfits, this.store, super.key});
+
+  final Outfit? outfit;
+  final List<Outfit>? outfits;
+  final LocalLookbook? store;
+
+  // The preview uses fixed wardrobe labels as identifiers.
+  static Outfit sampleOutfit() => Outfit(
+    id: 'weekend-edit',
+    itemIds: const ['Linen shirt', 'Everyday shorts', 'Green sneakers'],
+    reason: 'A relaxed combination for your plans.',
+    occasion: 'The Weekend Edit',
+    createdAt: DateTime.now(),
+  );
 
   @override
   Widget build(BuildContext context) {
+    final results = outfits ?? [outfit ?? sampleOutfit()];
+    final lookbook = store ?? LocalLookbook();
     return Scaffold(
       appBar: AppBar(title: const Text('Your Outfits')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          for (var number = 1; number <= 3; number++)
+          for (final result in results)
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 child: Column(
-                  crossAxisAlignment: .start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Outfit $number',
-                      style: Theme.of(context).textTheme.titleMedium,
+                      result.occasion,
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
-                    const SizedBox(height: 8),
-                    const Row(
-                      children: [
-                        Expanded(child: PhotoPlaceholder(height: 72)),
-                        SizedBox(width: 8),
-                        Expanded(child: PhotoPlaceholder(height: 72)),
-                        SizedBox(width: 8),
-                        Expanded(child: PhotoPlaceholder(height: 72)),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text('Sample reason this outfit suits the occasion.'),
-                    Wrap(
-                      children: [
-                        IconButton(
-                          tooltip: 'Save',
-                          icon: const Icon(Icons.bookmark_add),
-                          onPressed: () =>
-                              showNotBuilt(context, 'FR-8 save outfit'),
-                        ),
-                        IconButton(
-                          tooltip: 'Swap a piece',
-                          icon: const Icon(Icons.swap_horiz),
-                          onPressed: () =>
-                              showNotBuilt(context, 'F-2 swap a piece'),
-                        ),
-                        IconButton(
-                          tooltip: 'Good outfit',
-                          icon: const Icon(Icons.thumb_up),
-                          onPressed: () => showNotBuilt(context, 'F-3 rating'),
-                        ),
-                        IconButton(
-                          tooltip: 'Bad outfit',
-                          icon: const Icon(Icons.thumb_down),
-                          onPressed: () => showNotBuilt(context, 'F-3 rating'),
-                        ),
-                        IconButton(
-                          tooltip: 'Wear today',
-                          icon: const Icon(Icons.today),
-                          onPressed: () =>
-                              showNotBuilt(context, 'F-4 wear log'),
-                        ),
-                      ],
-                    ),
+                    Text(result.reason),
+                    const SizedBox(height: 12),
+                    for (final item in result.itemIds) Text(item),
+                    const SizedBox(height: 16),
+                    SaveOutfitButton(outfit: result, store: lookbook),
                   ],
                 ),
               ),
@@ -76,4 +52,61 @@ class OutfitResultsScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class SaveOutfitButton extends StatefulWidget {
+  const SaveOutfitButton({
+    required this.outfit,
+    required this.store,
+    this.label = 'Save',
+    this.savedLabel = 'Saved',
+    super.key,
+  });
+
+  final Outfit outfit;
+  final LocalLookbook store;
+  final String label;
+  final String savedLabel;
+
+  @override
+  State<SaveOutfitButton> createState() => _SaveOutfitButtonState();
+}
+
+class _SaveOutfitButtonState extends State<SaveOutfitButton> {
+  bool _saving = false;
+  bool _saved = false;
+  bool _failed = false;
+
+  Future<void> _save() async {
+    setState(() {
+      _saving = true;
+      _failed = false;
+    });
+    try {
+      await widget.store.save(widget.outfit);
+      if (mounted) setState(() => _saved = true);
+    } catch (_) {
+      if (mounted) setState(() => _failed = true);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      if (_failed) const Text('Could not save this outfit. Try again.'),
+      FilledButton.icon(
+        onPressed: _saving || _saved ? null : _save,
+        icon: Icon(_saved ? Icons.check : Icons.bookmark_add_outlined),
+        label: Text(
+          _saving
+              ? 'Saving…'
+              : _saved
+              ? widget.savedLabel
+              : widget.label,
+        ),
+      ),
+    ],
+  );
 }

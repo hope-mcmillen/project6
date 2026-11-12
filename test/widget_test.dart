@@ -2,11 +2,14 @@ import 'package:fitcheck_ai/app/app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'features/outfits/test_lookbook_storage.dart';
+
 Future<void> openApp(WidgetTester tester) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(const FitCheckApp());
+  await tester.pumpWidget(FitCheckApp(lookbook: TestLookbookStorage().open()));
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -45,10 +48,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('A picnic in the park'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Choose this outfit'));
-    await tester.tap(find.text('Choose this outfit'));
+    await tester.ensureVisible(find.text('Save'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
-    expect(find.text('Outfit selected'), findsOneWidget);
+    expect(find.text('Saved'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

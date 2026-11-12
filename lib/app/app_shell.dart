@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../core/ai/fake_ai_service.dart';
+import '../core/data/local_lookbook.dart';
+import '../core/data/models.dart';
+import '../features/outfits/lookbook_screen.dart';
+import '../features/outfits/outfit_request_screen.dart';
+import '../features/outfits/outfit_results_screen.dart';
 import 'app.dart';
 
 class Garment {
@@ -11,7 +17,9 @@ class Garment {
 }
 
 class AppShell extends StatefulWidget {
-  const AppShell({super.key});
+  const AppShell({this.lookbook, super.key});
+
+  final LocalLookbook? lookbook;
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -19,7 +27,41 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int tab = 0;
   String filter = 'All', occasion = 'Everyday', style = 'Casual';
-  bool preview = false, saved = false;
+  bool preview = false;
+  late final lookbook = widget.lookbook ?? LocalLookbook();
+  late Future<void> wardrobeReady = loadWardrobe();
+  Outfit? suggestedOutfit;
+  int saveButtonVersion = 0;
+  final sampleTee = Garment(
+    'Daisy tee',
+    'Tops',
+    const Color(0xFFE59AB6),
+    10,
+    Icons.local_florist_outlined,
+  );
+  final removing = <Garment>{};
+
+  Future<void> loadWardrobe() async {
+    final data = await lookbook.read();
+    if (mounted) {
+      clothes.removeWhere((item) => data.deletedItems.contains(item.name));
+    }
+  }
+
+  Future<void> removeGarment(Garment item) async {
+    if (!removing.add(item)) return;
+    try {
+      await lookbook.deleteItem(item.name);
+      if (!mounted) return;
+      setState(() => clothes.remove(item));
+      notice('Piece removed from your wardrobe.');
+    } catch (_) {
+      if (mounted) notice('Could not remove this piece. Try again.');
+    } finally {
+      removing.remove(item);
+    }
+  }
+
   final input = TextEditingController();
   final chatScroll = ScrollController();
   final messages = <(String, bool)>[];
@@ -99,15 +141,32 @@ class _AppShellState extends State<AppShell> {
                       child: const Icon(Icons.checkroom, color: Colors.white),
                     ),
                     const SizedBox(width: 10),
-                    const Text(
-                      'Fitcheck AI',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.8,
+                    const Expanded(
+                      child: Text(
+                        'Fitcheck AI',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.8,
+                        ),
                       ),
                     ),
-                    const Spacer(),
+                    IconButton(
+                      tooltip: 'Lookbook',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => LookbookScreen(
+                            store: lookbook,
+                            onRemoved: (id) {
+                              if (mounted && id == suggestedOutfit?.id) {
+                                setState(() => saveButtonVersion++);
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.bookmarks_outlined),
+                    ),
                     IconButton(
                       tooltip: 'Home',
                       onPressed: () => setState(() => tab = 0),
@@ -119,7 +178,31 @@ class _AppShellState extends State<AppShell> {
               Expanded(
                 child: switch (tab) {
                   0 => home(),
-                  1 => wardrobe(),
+                  1 => FutureBuilder<void>(
+                    future: wardrobeReady,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState != ConnectionState.done) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('Could not load your wardrobe.'),
+                              TextButton(
+                                onPressed: () => setState(() {
+                                  wardrobeReady = loadWardrobe();
+                                }),
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      return wardrobe();
+                    },
+                  ),
                   2 => capture(),
                   _ => outfits(),
                 },
@@ -196,6 +279,43 @@ class _AppShellState extends State<AppShell> {
     child: child,
   );
 
+  Future<List<ClothingItem>> loadPlannerCloset() async {
+    await wardrobeReady;
+    return [
+      for (final item in {for (final item in clothes) item.name: item}.values)
+        ClothingItem(
+          id: item.name,
+          photoPath: '',
+          tags: ClothingTags(
+            category: switch (item.category) {
+              'Tops' => 'top',
+              'Bottoms' => 'bottom',
+              _ => 'shoes',
+            },
+            color: '',
+            pattern: '',
+            formality: '',
+            season: '',
+          ),
+          createdAt: DateTime.now(),
+          isSample: true,
+        ),
+    ];
+  }
+
+  void openOutfitPlanner() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => OutfitRequestScreen(
+          loadCloset: loadPlannerCloset,
+          ai: FakeAiService(outfitCount: 1),
+          lookbook: lookbook,
+          initialOccasion: occasion,
+        ),
+      ),
+    );
+  }
+
   Widget home() => ListView(
     key: const PageStorageKey('today'),
     padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
@@ -205,34 +325,10 @@ class _AppShellState extends State<AppShell> {
         'Good outfits start here.',
         'Rediscover your wardrobe. Make every piece count.',
       ),
-      card(
-        const Row(
-          children: [
-            Icon(Icons.wb_cloudy_outlined, size: 44, color: plum),
-            SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Baton Rouge, LA',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Partly cloudy · Sample weather',
-                    style: TextStyle(fontSize: 12, color: Colors.black54),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              '76°',
-              style: TextStyle(fontSize: 34, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-        color: const Color(0xFFF0E9FC),
+      OutlinedButton.icon(
+        onPressed: openOutfitPlanner,
+        icon: const Icon(Icons.wb_cloudy_outlined),
+        label: const Text('Plan an outfit with live weather'),
       ),
       const SizedBox(height: 24),
       const Text(
@@ -450,9 +546,8 @@ class _AppShellState extends State<AppShell> {
           ),
           TextButton(
             onPressed: () {
-              setState(() => clothes.remove(item));
               Navigator.pop(context);
-              notice('Piece removed from your demo wardrobe.');
+              removeGarment(item);
             },
             child: const Text('Remove from wardrobe'),
           ),
@@ -488,7 +583,7 @@ class _AppShellState extends State<AppShell> {
               height: 200,
               child: Center(
                 child: preview
-                    ? garment(clothes.first, 130)
+                    ? garment(sampleTee, 130)
                     : const Icon(
                         Icons.add_photo_alternate_outlined,
                         size: 90,
@@ -542,7 +637,7 @@ class _AppShellState extends State<AppShell> {
       ),
       const SizedBox(height: 16),
       const Text(
-        'UI preview · Camera and photo uploads are coming later.\nChanges are kept only during this session.',
+        'UI preview · Camera and photo uploads are coming later.\nSample uploads are kept during this session.',
         textAlign: TextAlign.center,
         style: TextStyle(color: Colors.black54, fontSize: 12, height: 1.6),
       ),
@@ -558,7 +653,7 @@ class _AppShellState extends State<AppShell> {
         'Here’s a sample look: a linen shirt, everyday shorts, and green sneakers. A relaxed combination for your plans.',
         false,
       ));
-      saved = false;
+      suggestedOutfit = OutfitResultsScreen.sampleOutfit();
     });
     input.clear();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -600,6 +695,14 @@ class _AppShellState extends State<AppShell> {
               ],
             ),
             const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: openOutfitPlanner,
+                icon: const Icon(Icons.wb_cloudy_outlined),
+                label: const Text('Plan an outfit with live weather'),
+              ),
+            ),
             bubble(
               'What are you dressing for today? Tell me about the event, the weather, or a piece you’d love to wear.',
               false,
@@ -689,17 +792,10 @@ class _AppShellState extends State<AppShell> {
                       style: TextStyle(color: Colors.black54, height: 1.5),
                     ),
                     const SizedBox(height: 18),
-                    FilledButton.icon(
-                      onPressed: saved
-                          ? null
-                          : () {
-                              setState(() => saved = true);
-                              notice('Outfit selected for this session.');
-                            },
-                      icon: Icon(saved ? Icons.check : Icons.favorite_border),
-                      label: Text(
-                        saved ? 'Outfit selected' : 'Choose this outfit',
-                      ),
+                    SaveOutfitButton(
+                      key: ValueKey(saveButtonVersion),
+                      outfit: suggestedOutfit!,
+                      store: lookbook,
                     ),
                     TextButton(
                       onPressed: () => notice(

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../core/data/local_lookbook.dart';
 import 'app_shell.dart';
 
 const plum = Color(0xFF7043D4);
 const ink = Color(0xFF292334);
 
 class FitCheckApp extends StatelessWidget {
-  const FitCheckApp({super.key});
+  const FitCheckApp({this.lookbook, super.key});
+
+  final LocalLookbook? lookbook;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -37,6 +40,6 @@ class FitCheckApp extends StatelessWidget {
         ),
       ),
     ),
-    home: const AppShell(),
+    home: AppShell(lookbook: lookbook),
   );
 }

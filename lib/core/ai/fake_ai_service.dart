@@ -53,10 +53,11 @@ class FakeAiService implements AiService {
       for (final c in categories)
         items.firstWhere((i) => i.tags.category == c).id,
     ];
+    final resultId = DateTime.now().microsecondsSinceEpoch;
     return [
       for (var i = 0; i < outfitCount.clamp(1, 3); i++)
         Outfit(
-          id: 'fake-outfit-$i',
+          id: 'fake-outfit-$resultId-$i',
           itemIds: ids,
           occasion: request.occasion,
           reason:
