@@ -46,5 +46,8 @@ Uint8List _resize(_ResizeJob job) {
       interpolation: img.Interpolation.average,
     );
   }
+  // The JPEG encoder preserves EXIF unless it is explicitly cleared. Bake the
+  // orientation first, then remove GPS, camera data and embedded thumbnails.
+  image.exif = img.ExifData();
   return Uint8List.fromList(img.encodeJpg(image, quality: job.quality));
 }

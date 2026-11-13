@@ -90,6 +90,7 @@ void main() {
         photo: photo,
         occasion: 'Class',
         weather: weather,
+        clothingOnlyConfirmed: true,
       );
       final ai = FakeAiService();
       final feature.FitCheckService screenService = ai;
@@ -106,7 +107,13 @@ void main() {
   test('shared fake failures expose the normal AI error contract', () async {
     final ai = FakeAiService(failFitCheck: true);
     await expectLater(
-      ai.checkFit(FitCheckRequest(photo: Uint8List(1), occasion: 'Class')),
+      ai.checkFit(
+        FitCheckRequest(
+          photo: Uint8List(1),
+          occasion: 'Class',
+          clothingOnlyConfirmed: true,
+        ),
+      ),
       throwsA(
         isA<AiServiceException>().having(
           (error) => error.message,
@@ -119,7 +126,11 @@ void main() {
   });
 
   test('logging wrapper forwards Fit Check requests and failures', () async {
-    final request = FitCheckRequest(photo: Uint8List(1), occasion: 'Class');
+    final request = FitCheckRequest(
+      photo: Uint8List(1),
+      occasion: 'Class',
+      clothingOnlyConfirmed: true,
+    );
     final ai = FakeAiService();
     final AiService logging = LoggingAiService(ai);
     expect((await logging.checkFit(request)).suggestions, hasLength(3));

@@ -48,6 +48,17 @@ complete, verify it and report that fact instead of creating a duplicate commit.
 
 ## Constraints and manual dependencies
 
+November 13 implementation: live Fit Check now uses the shared Firebase client,
+photo helper and allowance, with explicit clothing-only confirmation required
+before upload. See BACKEND_HANDOFF.md for Keith's integration steps. Tests, live
+probes and CI checks are skipped at the user's request until they ask to resume.
+The new regression cases are not recorded as passing. M3-09 acceptance remains
+pending screen integration, live wording/photo-flow verification and merged
+review. The Trello card was already in Done at inspection and was moved to
+In Progress to reflect pending acceptance. Release App Check and Marcus's actual
+demo recording also remain manual dependencies. Static analysis of all app/test/
+integration sources and changed-file formatting/whitespace checks passed.
+
 - Keep the computer powered on and Codex running at the scheduled time.
 - Google sign-in, any acceptance of terms, and teammate access grants may require
   the account owner. Team email addresses and minimum required roles are needed

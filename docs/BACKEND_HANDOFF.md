@@ -128,7 +128,7 @@ passed to Keith's existing `FitCheckScreen(service: ...)` constructor. Import
 `core/ai/ai_service.dart` or `core/ai/fit_check.dart`. The existing feature-facing
 `fit_check_service.dart` path re-exports these same types for current callers.
 
-Requests retain the prepared JPEG, occasion and optional `WeatherSummary`.
+Requests retain image bytes, occasion and optional `WeatherSummary`.
 `FitCheckFeedback.fromMap` validates structured model data and throws
 `FormatException` for malformed fields. It requires a nonempty verdict of at
 most 600 characters and a list of zero to three nonempty suggestions of at most
@@ -141,16 +141,90 @@ for failure UI. The fake records `fitCheckCalls` and `lastFitCheckRequest`.
 The logging wrapper forwards requests and failures while recording only the
 operation and suggestion count.
 
-The Firebase implementation continues to return the existing unavailable
-message. Live generation, the explicit clothing-only photo policy, quota-path
-integration and Keith's wiring handoff are the November 13 deliverable.
-Live clothing-only wording review and photo-flow acceptance remain required
-under M3-09.
+The November 13 implementation below replaces the Firebase unavailable
+message. Live clothing-only wording review and photo-flow acceptance remain
+required under M3-09.
 
 Parser, error, immutability, fake and compatibility regression cases were added
 in `test/core/ai/fit_check_contract_test.dart`. Test execution and CI checking
-are skipped at the user's request. M3-09 remains incomplete pending live work
-and merged review.
+are skipped at the user's request. M3-09 remains incomplete pending live
+verification, screen integration and merged review.
+
+## Live Fit Check handoff (M3-09, November 13)
+
+`FirebaseAiService.checkFit` now uses the existing schema-constrained Firebase
+AI client and the shared App Check/daily allowance connection. It re-encodes
+image bytes through `prepareClothingPhoto` (1024px, JPEG, EXIF removed, off the
+UI thread). A provider attempt has its own 20-second deadline. Malformed JSON
+or invalid feedback gets one retry; network errors do not. Each attempt,
+including retries/failures, consumes the shared daily allowance. Error messages
+for invalid Fit Check replies refer to Fit Check, rather than manual tag entry.
+The default model remains unchanged. No billing or Firebase settings changed.
+
+Photo-preparation dependency fix: the image package's JPEG encoder preserves
+EXIF. The shared resize helper previously kept that metadata despite its
+comment. It now clears EXIF explicitly **after** baking orientation and resizing,
+before encoding. This removes embedded GPS, camera tags and EXIF thumbnails
+for both tagging and Fit Check. Two regression cases use JPEGs with synthetic
+EXIF at small and large sizes. This small shared-helper change needs Keith's
+review; no feature screen was changed.
+
+The team's current policy accepts **clothing-only photos, with no person in the
+frame**. `FitCheckRequest.clothingOnlyConfirmed` defaults to `false`. The live
+service and core fake reject an unconfirmed request before preparing an image,
+reserving an AI slot, or contacting the provider. Set it to `true` only after
+the user explicitly confirms the rule for the selected photo. Never set it
+unconditionally from an existing notice. Selecting another photo must require
+a fresh acknowledgement. There is no paid-tier override in this implementation.
+This is caller acknowledgement, not a person detector; it cannot verify the
+photo's contents. Do not claim automatic detection or guaranteed wording.
+
+Before any provider call, requests also require nonempty image bytes, a trimmed
+nonempty occasion (at most 160 input characters), and finite temperature with
+precipitation probability in 0–100 when weather is supplied. Unreadable or empty
+prepared images fail before a provider call. Only the prepared image, occasion
+and numeric weather summary are sent; no local path, UID or location label.
+The prompt requests clothing-only comments and treats image text and context
+as data. Local parsing enforces the existing verdict/suggestion bounds, but
+human review of real wording remains necessary. Structured generation follows
+the [Firebase response-schema guidance](https://firebase.google.com/docs/ai-logic/generate-structured-output).
+
+Keith's M4-07 integration:
+
+1. Inject the existing `BackendScope` AI bundle into
+   `FitCheckScreen(service: services.ai)` instead of `PendingFitCheckService`.
+2. Collect explicit confirmation for the selected photo and carry it to the
+   result screen. Pass it into the request below; do not reuse it for a new photo.
+3. Pass optional weather when available, show `AiServiceException.message`,
+   and keep the current unsaved-photo disposal behavior. The service prepares
+   the image, so the caller does not need to resize it again.
+
+```dart
+final feedback = await services.ai.checkFit(FitCheckRequest(
+  photo: imageBytes,
+  occasion: occasion,
+  weather: weather,
+  clothingOnlyConfirmed: confirmedNoPersonForThisPhoto,
+));
+```
+
+Existing screen callers still compile because confirmation defaults to false;
+they must supply confirmation before the live/core-fake service will run.
+The separate feature-local `FakeFitCheckService` remains a screen fixture, not
+evidence that the production policy is wired. Marcus has not changed Keith's
+screens. The handoff is in this document/PR; no teammate message was sent.
+
+Regression cases in `firebase_fit_check_test.dart` cover preflight policy,
+bad input/photos, image/context forwarding, bounded retries, provider failure,
+the separate deadline and the shared allowance. An opt-in live clothing-only
+probe was added to `integration_test/firebase_ai_test.dart` using its existing
+public-domain unworn-shirt fixture. It logs only that fixture's feedback for
+manual wording review. Static analysis of `lib`, `test` and `integration_test`
+passed, as did formatting checks for the changed Dart files and whitespace
+validation. Test execution, live probes and CI checking were skipped
+at the user's request. This is implementation evidence, not a live pass or
+real-phone acceptance. Release App Check setup, screen wiring and wording review
+remain open; M3-09 must not be marked complete on code alone.
 
 ## Daily AI allowance (M3-08, November 10)
 

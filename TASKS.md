@@ -230,6 +230,7 @@ earlier tasks only ran against fakes.
   - **Where:** `lib/core/ai/`, Firebase console
   - **Done when:** An unverified client cannot use AI Logic, team builds still work, and going over the limit shows a clear message.
 - [ ] **M3-09: Build Fit Check AI feedback**
+  - **Status (Nov 13):** Live backend implementation and Keith's integration handoff prepared on `codex/marcus-fit-check-live`. Requires explicit clothing-only photo confirmation. Tests/live probes and CI checking are skipped at the user's request; screen wiring, real wording/photo-flow verification and merged review remain pending. Trello was moved from Done to In Progress to reflect these outstanding criteria.
   - **Covers:** F-1
   - **Needs first:** M3-04
   - **What to do:** Send one outfit photo with the occasion and weather, and require a verdict plus up to 3 specific suggestions as JSON. Feedback covers clothing only, never body shape, weight, or skin. Photos of people need the paid Gemini tier; without billing, accept only outfits with no person in the photo.

@@ -37,6 +37,24 @@ void main() {
     expect(img.findFormatForData(bytes), img.ImageFormat.jpg);
   });
 
+  for (final (width, height) in [(40, 20), (1600, 800)]) {
+    test('EXIF is stripped after orientation and resizing: $width x $height', () async {
+      final source = img.Image(width: width, height: height);
+      source.exif.imageIfd
+        ..make = 'Synthetic fixture camera'
+        ..orientation = 6;
+      source.exif.gpsIfd.setGpsLocation(latitude: 1.25, longitude: 2.5);
+      final jpeg = Uint8List.fromList(img.encodeJpg(source));
+      // Ensure the input actually carries metadata, unlike a plain PNG fixture.
+      expect(decoded(jpeg).exif.isEmpty, isFalse);
+
+      final result = decoded(await resizePhotoForAi(jpeg));
+      expect(result.width, width > 1024 ? 512 : height);
+      expect(result.height, width > 1024 ? 1024 : width);
+      expect(result.exif.isEmpty, isTrue);
+    });
+  }
+
   test('a custom max edge is respected', () async {
     final result = decoded(
       await resizePhotoForAi(samplePng(400, 100), maxEdge: 200),
