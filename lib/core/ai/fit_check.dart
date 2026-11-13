@@ -8,12 +8,39 @@ class FitCheckRequest {
     required this.photo,
     required this.occasion,
     this.weather,
+    this.clothingOnlyConfirmed = false,
   });
 
-  /// JPEG bytes prepared with Member 4's shared photo helper.
+  /// Image bytes. The live service re-encodes them with the shared photo helper.
   final Uint8List photo;
   final String occasion;
   final WeatherSummary? weather;
+
+  /// Set only after the user confirms this specific photo shows no people.
+  /// This is an acknowledgement, not an on-device person detector. There is no
+  /// paid-tier bypass; an unconfirmed photo must not reach the provider.
+  final bool clothingOnlyConfirmed;
+
+  static const photoPolicyMessage =
+      'Confirm this photo shows only clothing, with no person in the frame. '
+      'Use an outfit laid flat or on a hanger.';
+
+  /// Shared by the live service and fake, before photo work or quota reservation.
+  String? get validationError {
+    if (!clothingOnlyConfirmed) return photoPolicyMessage;
+    if (photo.isEmpty) return 'Choose an outfit photo first.';
+    if (occasion.trim().isEmpty || occasion.length > 160) {
+      return 'Choose an occasion of 1 to 160 characters.';
+    }
+    final context = weather;
+    if (context != null &&
+        (!context.temperatureC.isFinite ||
+            context.rainChancePercent < 0 ||
+            context.rainChancePercent > 100)) {
+      return 'Weather could not be read. Refresh it or retry without weather.';
+    }
+    return null;
+  }
 }
 
 /// Feedback about clothing, with at most three specific suggestions.

@@ -2,6 +2,7 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:fitcheck_ai/core/ai/ai_service.dart';
 import 'package:fitcheck_ai/core/data/backend_services.dart';
 import 'package:fitcheck_ai/core/data/fake_repositories.dart';
 import 'package:fitcheck_ai/core/data/models.dart';
@@ -44,6 +45,40 @@ void main() {
     // Explicit public fixture: record latency and clothing tags, never credentials.
     // ignore: avoid_print
     print('Clothing tags in ${timer.elapsedMilliseconds} ms: ${tags.toMap()}');
+  }, timeout: const Timeout(Duration(minutes: 1)));
+  testWidgets('live clothing-only Fit Check with the shared AI service', (
+    tester,
+  ) async {
+    // This public-domain unworn shirt is explicitly documented in FIXTURES.md.
+    // No camera photo or person photo belongs in this opt-in probe.
+    final photo = (await rootBundle.load('backend_test/black_tshirt.jpg'))
+        .buffer
+        .asUint8List();
+    final timer = Stopwatch()..start();
+    final feedback = await services.ai.checkFit(
+      FitCheckRequest(
+        photo: photo,
+        occasion: 'casual class',
+        clothingOnlyConfirmed: true,
+        weather: const WeatherSummary(temperatureC: 22, rainChancePercent: 10),
+      ),
+    );
+    timer.stop();
+    expect(feedback.verdict, isNotEmpty);
+    expect(feedback.verdict.length, lessThanOrEqualTo(600));
+    expect(feedback.suggestions.length, lessThanOrEqualTo(3));
+    expect(
+      feedback.suggestions.every(
+        (text) => text.isNotEmpty && text.length <= 200,
+      ),
+      isTrue,
+    );
+    // A human must still review whether live wording discusses clothing only.
+    // ignore: avoid_print
+    print(
+      'Fit Check in ${timer.elapsedMilliseconds} ms: '
+      '${feedback.verdict} | ${feedback.suggestions.join(' | ')}',
+    );
   }, timeout: const Timeout(Duration(minutes: 1)));
   testWidgets('live outfits with the production timeout and closet ID checks', (
     tester,
