@@ -120,6 +120,22 @@ once and then surface a clear error. Responses are deduplicated and limited to
 three. Clothing-only wording is requested in the prompt; human review of live
 responses remains necessary. Prompts alone do not guarantee safe wording.
 
+### November 14 outfit validation follow-up
+
+The outfit parser now validates the explanation before reserving an item-ID
+combination for deduplication. Previously, a malformed explanation could hide
+a later valid outfit using the same pieces, causing an unnecessary retry or
+failure. Reversed ID order still counts as the same combination, and only the
+first fully valid outfit is retained. Five regression cases cover empty,
+whitespace-only, missing, non-text and oversized explanations, followed by a
+valid outfit and a valid duplicate in the same reply. They were added as code
+but not executed, in keeping with the user's testing/CI preference.
+
+This follows up on M3-06's existing response-validation requirement in the open
+PR #18. M3-08/M3-09 acceptance remains pending, so November 14's conditional
+M3-10 swap work is deferred. No teammate feature screen, Firebase setting,
+credential or billing configuration was changed.
+
 ## Fit Check contract (M3-09, November 12)
 
 `AiService` now implements `FitCheckService`, so the shared AI bundle can be

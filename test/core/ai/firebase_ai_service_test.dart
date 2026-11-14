@@ -195,6 +195,46 @@ void main() {
       expect(client.photo, isNull);
     },
   );
+  for (final (index, invalidReason) in <Object?>[
+    '',
+    '   ',
+    null,
+    23,
+    List.filled(601, 'x').join(),
+  ].indexed) {
+    test(
+      'invalid explanation $index does not hide a valid duplicate',
+      () async {
+        final client = ScriptedClient([
+          jsonEncode({
+            'outfits': [
+              {
+                'itemIds': ['sample-dress', 'sample-shoes'],
+                'reason': invalidReason,
+              },
+              {
+                'itemIds': ['sample-shoes', 'sample-dress'],
+                'reason': '  The dress and shoes suit class.  ',
+              },
+              {
+                'itemIds': ['sample-dress', 'sample-shoes'],
+                'reason': 'Another valid explanation for the same outfit.',
+              },
+            ],
+          }),
+        ]);
+
+        final result = await service(client).generateOutfits(
+          OutfitRequest(closet: sampleCloset(), occasion: 'class'),
+        );
+
+        expect(result, hasLength(1));
+        expect(result.single.itemIds, ['sample-shoes', 'sample-dress']);
+        expect(result.single.reason, 'The dress and shoes suit class.');
+        expect(client.prompts, hasLength(1));
+      },
+    );
+  }
   for (final ids in [
     ['unknown'],
     ['sample-shoes'],

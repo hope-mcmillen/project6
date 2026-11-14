@@ -208,6 +208,7 @@ earlier tasks only ran against fakes.
   - **Where:** `lib/core/data/`
   - **Done when:** Items save to Firestore under the signed-in user, reload after a restart, and the closet still reads while offline.
 - [ ] **M3-06: Build outfit generation with item ID validation**
+  - **Status (Nov 14):** Follow-up on open PR #18 validates explanations before deduplication, preserving later valid outfits after a malformed candidate. Regression cases added but not executed; live/CI checks remain skipped at the user's request.
   - **Due:** Thu, Nov 5
   - **Covers:** FR-5
   - **Needs first:** M3-02, M3-04
@@ -246,6 +247,7 @@ earlier tasks only ran against fakes.
 ### P2: If time allows
 
 - [ ] **M3-10: Add swaps, ratings, and style profile to outfit prompts**
+  - **Status (Nov 14):** Conditional swap work deferred because P1 acceptance remains incomplete. Prioritizing existing AI validation/readiness; no swaps, ratings or history prompt integration is claimed.
   - **Covers:** F-2, F-3, F-4, F-5
   - **Needs first:** M3-06
   - **What to do:** Extend outfit requests so one piece can be swapped while the rest stay locked. Include recent ratings, items worn in the last 3 days, and style profile answers.

@@ -236,13 +236,16 @@ class FirebaseAiService implements AiService {
             ).missingCategories.isNotEmpty) {
               continue;
             }
+            // A malformed explanation must not reserve the combination and
+            // hide a later, valid outfit using those same items.
+            final reason = _text(map['reason'], max: 600);
             final key = (ids.toList()..sort()).join('\u0000');
             if (!seen.add(key)) continue;
             outfits.add(
               Outfit(
                 id: 'ai-${_now().microsecondsSinceEpoch}-${_sequence++}',
                 itemIds: ids,
-                reason: _text(map['reason'], max: 600),
+                reason: reason,
                 occasion: request.occasion,
                 createdAt: _now(),
               ),

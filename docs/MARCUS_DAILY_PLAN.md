@@ -46,6 +46,16 @@ complete, verify it and report that fact instead of creating a duplicate commit.
 | Nov 16 Mon | Run backend regression checks; prepare a redacted Firestore demo walkthrough and sample-data evidence. Use the team's actual demo script if available. | M3-11 preparation |
 | Nov 17 Tue | Final Member 3 handoff: verify remaining requirements, fix release blockers, collect actual Firestore persistence proof and recording if available, document outstanding manual steps and deliver to Keith when explicitly authorized. Stop the daily automation after this run. | M3-11, final handoff |
 
+## November 14 readiness work
+
+PR #18 remains open, and Trello M3-09 remains In Progress. The documented P1
+screen/live/production acceptance dependencies are not resolved, so the
+conditional M3-10 swap implementation is deferred. Today's owned-code follow-up
+fixes the existing M3-06 parser bug where an invalid explanation reserved an
+outfit combination and suppressed a later valid candidate. Regression cases
+were added, with tests, live probes and CI checking still skipped. No card was
+marked Done and no live pass is claimed.
+
 ## Constraints and manual dependencies
 
 November 13 implementation: live Fit Check now uses the shared Firebase client,
