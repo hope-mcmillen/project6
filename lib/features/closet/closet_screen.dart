@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/data/models.dart';
@@ -10,17 +12,22 @@ import 'closet_photo.dart';
 import 'closet_services.dart';
 import 'item_detail_screen.dart';
 import 'sample_closet.dart';
+import 'wear_stats.dart';
 
 class ClosetScreen extends StatefulWidget {
   const ClosetScreen({
     super.key,
     this.repository,
+    this.wearLogs,
     this.sampleLoader,
     this.onAddItem,
+    this.now = DateTime.now,
   });
 
   final ClosetRepository? repository;
+  final WearLogRepository? wearLogs;
   final SampleClosetLoader? sampleLoader;
+  final DateTime Function() now;
 
   /// Opens the app's add item tab. Without it, the screen pushes its own.
   final VoidCallback? onAddItem;
@@ -40,8 +47,43 @@ class _ClosetScreenState extends State<ClosetScreen> {
     'Accessories': 'accessory',
   };
 
+  /// Shows items not worn in [WearStats.staleDays], instead of a category.
+  static const _notWornFilter = 'Not worn lately';
+
   late final ClosetRepository _repository =
       widget.repository ?? closetServices(context).closet;
+  late final WearLogRepository _wearLogs =
+      widget.wearLogs ?? closetServices(context).wearLogs;
+
+  /// Null until the wear history loads, or if it failed to load.
+  WearStats? _wearStats;
+  bool _wearFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadWear());
+  }
+
+  Future<void> _loadWear() async {
+    try {
+      final logs = await _wearLogs.getWearLogs();
+      if (!mounted) return;
+      setState(() {
+        _wearStats = WearStats(logs);
+        _wearFailed = false;
+      });
+    } on Exception catch (error) {
+      AppLog.ui('Wardrobe: could not load wear history: $error');
+      if (mounted) setState(() => _wearFailed = true);
+    }
+  }
+
+  void _retryWear() {
+    AppLog.tap('Retry wear history', screen: 'Wardrobe');
+    setState(() => _wearFailed = false);
+    unawaited(_loadWear());
+  }
 
   /// Replaced by [_retryLoad], because a stream that has failed stays closed.
   late Stream<List<ClothingItem>> _items = _repository.watchItems();
@@ -89,14 +131,21 @@ class _ClosetScreenState extends State<ClosetScreen> {
     );
   }
 
-  void _openItem(ClothingItem item) {
+  Future<void> _openItem(ClothingItem item) async {
     AppLog.tap('${itemName(item)} (${item.id})', screen: 'Wardrobe');
-    Navigator.of(context).push(
+    await Navigator.of(context).push(
       MaterialPageRoute(
         settings: const RouteSettings(name: '/item-detail'),
-        builder: (_) => ItemDetailScreen(item: item, repository: _repository),
+        builder: (_) => ItemDetailScreen(
+          item: item,
+          repository: _repository,
+          wearLogs: _wearLogs,
+          now: widget.now,
+        ),
       ),
     );
+    // The item may have been worn on its details screen.
+    if (mounted) await _loadWear();
   }
 
   Widget _buildFilters() {
@@ -104,7 +153,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
       spacing: 8,
       runSpacing: 4,
       children: [
-        for (final label in _filters.keys)
+        for (final label in [..._filters.keys, _notWornFilter])
           ChoiceChip(
             label: Text(label),
             selected: _filter == label,
@@ -117,12 +166,25 @@ class _ClosetScreenState extends State<ClosetScreen> {
     );
   }
 
-  Widget _buildItemCard(ClothingItem item) {
-    final name = itemName(item);
-    final details = [
+  /// The card's second line: when it was last worn under the wear filter,
+  /// otherwise its formality and season.
+  String _cardDetails(ClothingItem item) {
+    final stats = _wearStats;
+    if (_filter == _notWornFilter && stats != null) {
+      final lastWorn = stats.forItem(item.id).lastWorn;
+      return lastWorn == null
+          ? 'Never worn'
+          : 'Last worn ${lastWornLabel(lastWorn, widget.now()).toLowerCase()}';
+    }
+    return [
       item.tags.formality,
       item.tags.season,
     ].where((tag) => tag.isNotEmpty).map(capitalized).join(' · ');
+  }
+
+  Widget _buildItemCard(ClothingItem item) {
+    final name = itemName(item);
+    final details = _cardDetails(item);
     return InkWell(
       key: ValueKey(item.id),
       borderRadius: BorderRadius.circular(22),
@@ -183,12 +245,45 @@ class _ClosetScreenState extends State<ClosetScreen> {
     );
   }
 
-  Widget _buildCloset(List<ClothingItem> allItems) {
+  List<ClothingItem> _filtered(List<ClothingItem> allItems) {
+    if (_filter == _notWornFilter) {
+      final stats = _wearStats;
+      if (stats == null) return [];
+      final now = widget.now();
+      return [
+        for (final item in allItems)
+          if (stats.notWornLately(item, now)) item,
+      ];
+    }
     final category = _filters[_filter];
-    final items = [
+    return [
       for (final item in allItems)
         if (category == null || item.tags.category == category) item,
-    ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    ];
+  }
+
+  /// Shown under the filters when the chosen filter matches nothing.
+  Widget _buildNoMatches() {
+    if (_filter != _notWornFilter) {
+      return Text('No ${_filter.toLowerCase()} in your closet.');
+    }
+    if (_wearFailed) {
+      return Row(
+        children: [
+          const Expanded(child: Text('Could not load wear history.')),
+          TextButton(onPressed: _retryWear, child: const Text('Retry')),
+        ],
+      );
+    }
+    if (_wearStats == null) return const LinearProgressIndicator();
+    return const Text(
+      'Everything has been worn in the last ${WearStats.staleDays} days.',
+    );
+  }
+
+  Widget _buildCloset(List<ClothingItem> allItems) {
+    final items = _filtered(allItems)
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     final count = allItems.length;
 
     return CustomScrollView(
@@ -212,7 +307,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
                 if (count > 0 && items.isEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 24),
-                    child: Text('No ${_filter.toLowerCase()} in your closet.'),
+                    child: _buildNoMatches(),
                   ),
               ],
             ),

@@ -233,4 +233,105 @@ void main() {
     );
     expect(button.onPressed, isNotNull);
   });
+
+  group('not worn lately filter', () {
+    final now = DateTime(2026, 11, 16, 12);
+    final addedLongAgo = DateTime(2026, 9, 1);
+    late TestWearLogRepository wearLogs;
+
+    setUp(() async {
+      wearLogs = TestWearLogRepository();
+      await repository.saveItem(
+        testItem(
+          'old',
+          category: 'bottom',
+          color: 'red',
+          createdAt: addedLongAgo,
+        ),
+      );
+      await repository.saveItem(testItem('fresh', createdAt: addedLongAgo));
+      await wearLogs.saveWearLog(testWear('old', DateTime(2026, 10, 1)));
+      await wearLogs.saveWearLog(testWear('fresh', DateTime(2026, 11, 10)));
+    });
+
+    Future<void> openWearFilter(WidgetTester tester) async {
+      await pumpClosetScreen(
+        tester,
+        ClosetScreen(
+          repository: repository,
+          wearLogs: wearLogs,
+          now: () => now,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Not worn lately'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('shows only items not worn in 30 days', (tester) async {
+      await repository.saveItem(
+        testItem(
+          'never',
+          category: 'shoes',
+          color: 'green',
+          createdAt: addedLongAgo,
+        ),
+      );
+      await repository.saveItem(
+        testItem('new', color: 'black', createdAt: DateTime(2026, 11, 10)),
+      );
+
+      await openWearFilter(tester);
+
+      expect(find.text('Red bottom'), findsOneWidget);
+      expect(find.text('Last worn 46 days ago'), findsOneWidget);
+      expect(find.text('Green shoes'), findsOneWidget);
+      expect(find.text('Never worn'), findsOneWidget);
+      expect(find.text('Blue top'), findsNothing);
+      expect(find.text('Black top'), findsNothing);
+    });
+
+    testWidgets('says so when everything was worn recently', (tester) async {
+      await wearLogs.saveWearLog(testWear('old', DateTime(2026, 11, 14)));
+
+      await openWearFilter(tester);
+
+      expect(
+        find.text('Everything has been worn in the last 30 days.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a failed wear load can be retried', (tester) async {
+      wearLogs.failReads = true;
+      await openWearFilter(tester);
+
+      expect(find.text('Could not load wear history.'), findsOneWidget);
+
+      wearLogs.failReads = false;
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Red bottom'), findsOneWidget);
+    });
+
+    testWidgets('an item worn on its details screen leaves the filter', (
+      tester,
+    ) async {
+      await openWearFilter(tester);
+
+      await tester.tap(find.text('Red bottom'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Wore this today'));
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Red bottom'), findsNothing);
+      expect(
+        find.text('Everything has been worn in the last 30 days.'),
+        findsOneWidget,
+      );
+    });
+  });
 }
