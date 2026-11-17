@@ -28,6 +28,33 @@ class TestClosetRepository extends FakeClosetRepository {
   }
 }
 
+/// A fake wear history that tests can read, and that can fail like Firestore.
+class TestWearLogRepository extends FakeWearLogRepository {
+  final List<WearLog> saved = [];
+  bool failReads = false;
+  bool failWrites = false;
+
+  @override
+  Future<List<WearLog>> getWearLogs() async {
+    if (failReads) throw Exception('read rejected');
+    return super.getWearLogs();
+  }
+
+  @override
+  Future<void> saveWearLog(WearLog log) async {
+    if (failWrites) throw Exception('write rejected');
+    saved.add(log);
+    await super.saveWearLog(log);
+  }
+}
+
+WearLog testWear(String itemId, DateTime wornAt) => WearLog(
+  id: '$itemId-${wornAt.toIso8601String()}',
+  outfitId: '',
+  itemIds: [itemId],
+  wornAt: wornAt,
+);
+
 ClothingItem testItem(
   String id, {
   String category = 'top',

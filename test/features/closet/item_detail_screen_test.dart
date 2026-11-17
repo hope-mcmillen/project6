@@ -17,11 +17,14 @@ final shoes = testItem(
 );
 
 void main() {
+  final now = DateTime(2026, 11, 16, 12);
   late TestClosetRepository repository;
+  late TestWearLogRepository wearLogs;
   late List<String> deletedPhotos;
 
   setUp(() async {
     repository = TestClosetRepository();
+    wearLogs = TestWearLogRepository();
     deletedPhotos = [];
     await repository.saveItem(shoes);
   });
@@ -37,6 +40,8 @@ void main() {
                 builder: (_) => ItemDetailScreen(
                   item: shoes,
                   repository: repository,
+                  wearLogs: wearLogs,
+                  now: () => now,
                   deletePhoto: (path) async => deletedPhotos.add(path),
                 ),
               ),
@@ -96,6 +101,71 @@ void main() {
     expect(repository.items, hasLength(1));
     expect(deletedPhotos, isEmpty);
     expect(find.text('Could not delete that item. Try again.'), findsOneWidget);
+  });
+
+  group('wear history', () {
+    testWidgets('shows an unworn item as never worn', (tester) async {
+      await openDetail(tester);
+
+      expect(find.text('Not worn yet'), findsOneWidget);
+      expect(find.text('Never'), findsOneWidget);
+      expect(find.text('Wore this today'), findsOneWidget);
+    });
+
+    testWidgets('shows how often and how recently it was worn', (tester) async {
+      await wearLogs.saveWearLog(testWear('shoes', DateTime(2026, 11, 1)));
+      await wearLogs.saveWearLog(testWear('shoes', DateTime(2026, 11, 4)));
+      await wearLogs.saveWearLog(testWear('other', DateTime(2026, 11, 15)));
+
+      await openDetail(tester);
+
+      expect(find.text('2 times'), findsOneWidget);
+      expect(find.text('12 days ago'), findsOneWidget);
+    });
+
+    testWidgets('logging a wear saves it and updates the stats', (
+      tester,
+    ) async {
+      await openDetail(tester);
+
+      await tester.tap(find.text('Wore this today'));
+      await tester.pumpAndSettle();
+
+      expect(wearLogs.saved, hasLength(1));
+      expect(wearLogs.saved.single.itemIds, ['shoes']);
+      expect(wearLogs.saved.single.wornAt, now);
+      expect(find.text('Once'), findsOneWidget);
+      expect(find.text('Today'), findsOneWidget);
+      final button = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Worn today'),
+      );
+      expect(button.onPressed, isNull);
+    });
+
+    testWidgets('a rejected wear is undone and says so', (tester) async {
+      await openDetail(tester);
+      wearLogs.failWrites = true;
+
+      await tester.tap(find.text('Wore this today'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Could not log that wear. Try again.'), findsOneWidget);
+      expect(find.text('Not worn yet'), findsOneWidget);
+      expect(find.text('Wore this today'), findsOneWidget);
+    });
+
+    testWidgets('a failed load offers a retry', (tester) async {
+      wearLogs.failReads = true;
+      await openDetail(tester);
+
+      expect(find.text('Could not load wear history.'), findsOneWidget);
+
+      wearLogs.failReads = false;
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Not worn yet'), findsOneWidget);
+    });
   });
 
   test(
