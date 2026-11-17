@@ -170,6 +170,11 @@ earlier tasks only ran against fakes.
 
 ## Member 3: Database and AI (Marcus Reese)
 
+November 17 acceptance ledger: [final Member 3 handoff](docs/MARCUS_FINAL_HANDOFF.md).
+PR #18 remains open; checkboxes below were not changed solely on implementation
+or Trello list position. Tests/live probes and CI checks remain paused at the
+user's request. Conditional M3-10 work remains deferred while P1 is incomplete.
+
 ### P0: Friday MVP
 
 - [ ] **M3-01: Create the Firebase project and enable its services**
@@ -208,6 +213,7 @@ earlier tasks only ran against fakes.
   - **Where:** `lib/core/data/`
   - **Done when:** Items save to Firestore under the signed-in user, reload after a restart, and the closet still reads while offline.
 - [ ] **M3-06: Build outfit generation with item ID validation**
+  - **Status (Nov 14):** Follow-up on open PR #18 validates explanations before deduplication, preserving later valid outfits after a malformed candidate. Regression cases added but not executed; live/CI checks remain skipped at the user's request.
   - **Due:** Thu, Nov 5
   - **Covers:** FR-5
   - **Needs first:** M3-02, M3-04
@@ -230,12 +236,14 @@ earlier tasks only ran against fakes.
   - **Where:** `lib/core/ai/`, Firebase console
   - **Done when:** An unverified client cannot use AI Logic, team builds still work, and going over the limit shows a clear message.
 - [ ] **M3-09: Build Fit Check AI feedback**
+  - **Status (Nov 13):** Live backend implementation and Keith's integration handoff prepared on `codex/marcus-fit-check-live`. Requires explicit clothing-only photo confirmation. Tests/live probes and CI checking are skipped at the user's request; screen wiring, real wording/photo-flow verification and merged review remain pending. Trello was moved from Done to In Progress to reflect these outstanding criteria.
   - **Covers:** F-1
   - **Needs first:** M3-04
   - **What to do:** Send one outfit photo with the occasion and weather, and require a verdict plus up to 3 specific suggestions as JSON. Feedback covers clothing only, never body shape, weight, or skin. Photos of people need the paid Gemini tier; without billing, accept only outfits with no person in the photo.
   - **Where:** `lib/core/ai/`
   - **Done when:** Member 4 can get valid feedback through `AiService`, the wording stays on the clothes, and the team's billing decision is applied.
 - [ ] **M3-11: Record the demo segment showing data in Firestore**
+  - **Status (Nov 17):** Marcus reports the MVP assignment completed. The separate recording/delivery-to-Keith criterion is unverified in the inspected repo/card; no repeat MVP assignment is requested. Earlier persistence evidence is retained in FIREBASE_STATUS.md; no new recording or live pass is claimed.
   - **Covers:** Server component, demo video
   - **Needs first:** M1-07, M1-05
   - **What to do:** Record your section of the script: a saved item appears in the Firebase console, then reloads in the app. Mention that this database connection is the project's server component. Use sample data, and do not show keys or personal account details.
@@ -245,6 +253,7 @@ earlier tasks only ran against fakes.
 ### P2: If time allows
 
 - [ ] **M3-10: Add swaps, ratings, and style profile to outfit prompts**
+  - **Status (Nov 14):** Conditional swap work deferred because P1 acceptance remains incomplete. Prioritizing existing AI validation/readiness; no swaps, ratings or history prompt integration is claimed.
   - **Covers:** F-2, F-3, F-4, F-5
   - **Needs first:** M3-06
   - **What to do:** Extend outfit requests so one piece can be swapped while the rest stay locked. Include recent ratings, items worn in the last 3 days, and style profile answers.

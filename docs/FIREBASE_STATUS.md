@@ -3,6 +3,25 @@
 Project: [FitCheck AI](https://console.firebase.google.com/project/fitcheck-ai-258e1/overview)
 (`fitcheck-ai-258e1`). Plan: Spark (no billing enabled).
 
+## November 17 final status
+
+See [Marcus's final handoff](MARCUS_FINAL_HANDOFF.md) for the current acceptance
+ledger. No Firebase configuration, billing, credentials or access was changed
+today. Historical emulator results below were not rerun. Tests/live probes and
+CI checks remain paused at the user's request. Source analysis passed after
+merging master `165dee4` into the review branch.
+
+PR #18 is still open: live Fit Check and EXIF removal are implemented there,
+but the app shell still selects the pending service and does not carry the
+required per-photo confirmation/weather. No live Fit Check pass is claimed.
+Outfit request/weather integration is present in source; full physical-phone
+acceptance, release attestation and remaining approved teammate access remain
+unverified. The MVP assignment was reported completed by Marcus; the separate
+M3-11 recording/delivery acceptance is unverified in the inspected repo/card.
+
+The dated sections below preserve historical observations rather than asserting
+that all current screens are integrated or a current release is verified.
+
 ## Configured
 
 - Android app: `com.example.project6`, app ID
@@ -234,6 +253,41 @@ unavailable response until November 13's live generation and photo-policy work.
 Regression cases were added, with test execution and CI checking skipped at
 the user's request. M3-09 remains incomplete.
 
+## November 13 Fit Check implementation
+
+The Firebase Fit Check backend now prepares a clothing photo and requests a
+schema-constrained verdict with zero to three suggestions, through the same
+App Check and persistent daily allowance used by tagging/outfits. It has a
+20-second per-attempt timeout and one retry for malformed replies. No model,
+billing, credentials, console permissions or App Check settings were changed.
+
+The shared photo helper now explicitly clears EXIF before JPEG encoding.
+The installed image encoder otherwise preserves EXIF, contrary to the helper's
+previous comment. Orientation is baked first so removing GPS/camera/thumbnail
+metadata does not rotate the returned photo incorrectly. Regression cases were
+added for small and resized JPEGs with synthetic metadata; they were not run.
+
+The live service and shared fake require explicit
+`FitCheckRequest.clothingOnlyConfirmed` acknowledgement for the selected photo
+before photo preparation or provider access. Missing confirmation, invalid
+context and unreadable photos fail before quota is consumed. The acknowledgement
+is not automatic person detection. See the November 13 integration steps in
+[BACKEND_HANDOFF.md](BACKEND_HANDOFF.md#live-fit-check-handoff-m3-09-november-13).
+
+Regression cases and an opt-in live fixture probe were added, but tests, live
+probes and CI checking were skipped at the user's request. **No live Fit Check
+result or latency is claimed.** Static analysis of all app/test/integration
+sources, changed-file formatting and whitespace checks passed. Keith's feature
+screens still use the pending
+service and do not pass confirmation/weather. Screen integration, clothing-only
+wording review on real results and real-phone acceptance remain pending.
+
+Trello's M3-09 card was already in Done when inspected on November 13, although
+the merged backend still had its unavailable stub. That board position is not
+acceptance evidence. The card was moved to In Progress; M3-09 remains incomplete
+until the outstanding criteria are met and the implementation PR merges. No
+card was marked Done in this run.
+
 ## Remaining work
 
 - Configure release Play Integrity and authorize other team development devices
@@ -246,13 +300,17 @@ the user's request. M3-09 remains incomplete.
   debug emulator check as release proof.
 - Obtain Hope and Keith's Google-account emails and approval of their actual roles.
   Kameron's read-only Firebase Viewer access is granted and verified.
-- Kameron's closet and add-item screens now use the shared services. The outfit
-  flow still needs integration, followed by the complete
-  add-photo → tags → Firestore → outfit flow on a real Android phone.
+- Closet and add-item screens use the shared services, and the outfit request
+  source is now connected to shared AI/closet data and weather. The complete
+  add-photo → tags → Firestore → outfit flow on a real Android phone remains
+  unverified; source integration alone is not a live pass.
 - The per-device daily AI allowance merged in PR #11 under M3-08. It defaults
   to 30 provider attempts per local calendar day, including retries and failed
   requests. See BACKEND_HANDOFF.md for persistence, clock handling and limits.
 - Only Android is registered. Register other platforms before enabling them.
+- Finish Keith's Fit Check service/confirmation/weather wiring, then verify live
+  clothing-only feedback and the phone photo lifecycle. November 13's backend
+  implementation has not been live-tested.
 
 Model references: [supported models](https://firebase.google.com/docs/ai-logic/models)
 and [thinking configuration](https://firebase.google.com/docs/ai-logic/thinking).

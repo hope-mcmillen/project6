@@ -4,6 +4,24 @@ Owner: Marcus Reese / MarcusReese1 (Member 3). Time zone: America/Chicago.
 Friday MVP: November 6, 2026. Final Member 3 handoff: November 17, 2026.
 Source: [team tasks](../TASKS.md) and [Trello](https://trello.com/b/VkUZV9ex/4335-project6).
 
+## Final delivery, November 17
+
+The [final handoff](MARCUS_FINAL_HANDOFF.md) records the acceptance ledger,
+current review state, historical Firebase evidence and unresolved manual steps.
+Fresh master `165dee4` was merged into the existing PR #18 branch, preserving
+teammate wear-history work. Static analysis of all app/test/integration sources
+passed; tests, live probes and CI checks were skipped as requested. No November
+16 regression run is claimed. Conditional P2 prompt features remain deferred.
+
+Marcus reported the MVP assignment already completed. The separate M3-11
+recording/shared-with-Keith criterion remains unverified in the inspected
+repo/card; no repeat assignment or recording is requested. PR #18 remains open
+and M3-09 remains In Progress. No card was moved to Done. This is the final
+scheduled delivery; stop the daily automation after this handoff.
+
+The November 11 request to skip tests/CI overrides testing instructions in the
+original calendar below until Marcus explicitly asks to resume them.
+
 ## Current work, November 4
 
 Code prepared for M3-02 through M3-06: shared models and interfaces, deterministic
@@ -46,7 +64,29 @@ complete, verify it and report that fact instead of creating a duplicate commit.
 | Nov 16 Mon | Run backend regression checks; prepare a redacted Firestore demo walkthrough and sample-data evidence. Use the team's actual demo script if available. | M3-11 preparation |
 | Nov 17 Tue | Final Member 3 handoff: verify remaining requirements, fix release blockers, collect actual Firestore persistence proof and recording if available, document outstanding manual steps and deliver to Keith when explicitly authorized. Stop the daily automation after this run. | M3-11, final handoff |
 
+## November 14 readiness work
+
+PR #18 remains open, and Trello M3-09 remains In Progress. The documented P1
+screen/live/production acceptance dependencies are not resolved, so the
+conditional M3-10 swap implementation is deferred. Today's owned-code follow-up
+fixes the existing M3-06 parser bug where an invalid explanation reserved an
+outfit combination and suppressed a later valid candidate. Regression cases
+were added, with tests, live probes and CI checking still skipped. No card was
+marked Done and no live pass is claimed.
+
 ## Constraints and manual dependencies
+
+November 13 implementation: live Fit Check now uses the shared Firebase client,
+photo helper and allowance, with explicit clothing-only confirmation required
+before upload. See BACKEND_HANDOFF.md for Keith's integration steps. Tests, live
+probes and CI checks are skipped at the user's request until they ask to resume.
+The new regression cases are not recorded as passing. M3-09 acceptance remains
+pending screen integration, live wording/photo-flow verification and merged
+review. The Trello card was already in Done at inspection and was moved to
+In Progress to reflect pending acceptance. Release App Check remains unverified;
+the final recording's delivery is also unverified, while the user reports the
+MVP assignment completed. Static analysis of all app/test/
+integration sources and changed-file formatting/whitespace checks passed.
 
 - Keep the computer powered on and Codex running at the scheduled time.
 - Google sign-in, any acceptance of terms, and teammate access grants may require
@@ -54,7 +94,7 @@ complete, verify it and report that fact instead of creating a duplicate commit.
   before invitations. Do not expose credentials or add a paid plan.
 - Real Android checks require a connected device/emulator with the team's build.
 - M3-11 requires a real console/app demonstration. A script is not a recording;
-  a missing recording stays explicitly incomplete. Teammate demo script review
+  recording delivery without evidence stays unverified. Teammate demo script review
   and final video editing are outside Marcus's implementation scope.
 - Move Trello cards to Done only after their work meets acceptance criteria and
   the PR merges. Do not claim a blocked console task is complete.

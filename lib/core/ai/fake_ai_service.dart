@@ -24,6 +24,8 @@ class FakeAiService implements AiService {
   Future<FitCheckFeedback> checkFit(FitCheckRequest request) async {
     fitCheckCalls++;
     lastFitCheckRequest = request;
+    final error = request.validationError;
+    if (error != null) throw AiServiceException(error);
     if (failFitCheck) {
       throw const AiServiceException('Fit Check unavailable. Please retry.');
     }
