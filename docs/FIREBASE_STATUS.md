@@ -3,6 +3,25 @@
 Project: [FitCheck AI](https://console.firebase.google.com/project/fitcheck-ai-258e1/overview)
 (`fitcheck-ai-258e1`). Plan: Spark (no billing enabled).
 
+## November 17 final status
+
+See [Marcus's final handoff](MARCUS_FINAL_HANDOFF.md) for the current acceptance
+ledger. No Firebase configuration, billing, credentials or access was changed
+today. Historical emulator results below were not rerun. Tests/live probes and
+CI checks remain paused at the user's request. Source analysis passed after
+merging master `165dee4` into the review branch.
+
+PR #18 is still open: live Fit Check and EXIF removal are implemented there,
+but the app shell still selects the pending service and does not carry the
+required per-photo confirmation/weather. No live Fit Check pass is claimed.
+Outfit request/weather integration is present in source; full physical-phone
+acceptance, release attestation and remaining approved teammate access remain
+unverified. The MVP assignment was reported completed by Marcus; the separate
+M3-11 recording/delivery acceptance is unverified in the inspected repo/card.
+
+The dated sections below preserve historical observations rather than asserting
+that all current screens are integrated or a current release is verified.
+
 ## Configured
 
 - Android app: `com.example.project6`, app ID
@@ -281,9 +300,10 @@ card was marked Done in this run.
   debug emulator check as release proof.
 - Obtain Hope and Keith's Google-account emails and approval of their actual roles.
   Kameron's read-only Firebase Viewer access is granted and verified.
-- Kameron's closet and add-item screens now use the shared services. The outfit
-  flow still needs integration, followed by the complete
-  add-photo → tags → Firestore → outfit flow on a real Android phone.
+- Closet and add-item screens use the shared services, and the outfit request
+  source is now connected to shared AI/closet data and weather. The complete
+  add-photo → tags → Firestore → outfit flow on a real Android phone remains
+  unverified; source integration alone is not a live pass.
 - The per-device daily AI allowance merged in PR #11 under M3-08. It defaults
   to 30 provider attempts per local calendar day, including retries and failed
   requests. See BACKEND_HANDOFF.md for persistence, clock handling and limits.

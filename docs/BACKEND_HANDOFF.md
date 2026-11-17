@@ -1,5 +1,9 @@
 # Member 3 backend handoff
 
+Current acceptance snapshot: [November 17 final handoff](MARCUS_FINAL_HANDOFF.md).
+It supersedes earlier status wording below. Historical results keep their dates;
+tests, live probes and CI checks remain paused at Marcus's request.
+
 ## Interfaces for Kameron and Hope (M3-02)
 
 Import models from `lib/core/data/models.dart`, repository contracts from
@@ -362,12 +366,13 @@ was unavailable for the feature flow.
 
 ## Validation and remaining work
 
-Run `flutter analyze` and `flutter test`. Tests cover shared contracts/fakes,
+Static analysis is allowed; do not run tests, live probes or check CI until
+Marcus explicitly resumes testing. Existing test code covers shared contracts/fakes,
 sign-in reuse, scoped persistence round trips, owner-only document access using
 the fake rules evaluator, image preparation, malformed JSON/retries/timeouts,
 and invalid outfit IDs. Existing screen tests also remain in the suite.
 
-Live tagging/outfit checks and real startup pass. Still required: release App
+Earlier live tagging/outfit checks and real startup passed. Still unverified: release App
 Check registration, remaining teammate access, feature-screen integration and
 the full real-phone flow. See FIREBASE_STATUS.md for exact test evidence and
 debug/release build setup. M3-07–11 are scheduled in MARCUS_DAILY_PLAN.md.

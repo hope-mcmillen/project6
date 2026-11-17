@@ -170,6 +170,11 @@ earlier tasks only ran against fakes.
 
 ## Member 3: Database and AI (Marcus Reese)
 
+November 17 acceptance ledger: [final Member 3 handoff](docs/MARCUS_FINAL_HANDOFF.md).
+PR #18 remains open; checkboxes below were not changed solely on implementation
+or Trello list position. Tests/live probes and CI checks remain paused at the
+user's request. Conditional M3-10 work remains deferred while P1 is incomplete.
+
 ### P0: Friday MVP
 
 - [ ] **M3-01: Create the Firebase project and enable its services**
@@ -238,6 +243,7 @@ earlier tasks only ran against fakes.
   - **Where:** `lib/core/ai/`
   - **Done when:** Member 4 can get valid feedback through `AiService`, the wording stays on the clothes, and the team's billing decision is applied.
 - [ ] **M3-11: Record the demo segment showing data in Firestore**
+  - **Status (Nov 17):** Marcus reports the MVP assignment completed. The separate recording/delivery-to-Keith criterion is unverified in the inspected repo/card; no repeat MVP assignment is requested. Earlier persistence evidence is retained in FIREBASE_STATUS.md; no new recording or live pass is claimed.
   - **Covers:** Server component, demo video
   - **Needs first:** M1-07, M1-05
   - **What to do:** Record your section of the script: a saved item appears in the Firebase console, then reloads in the app. Mention that this database connection is the project's server component. Use sample data, and do not show keys or personal account details.
